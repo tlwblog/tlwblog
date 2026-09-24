@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>to live wonderfully</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Jost:wght@300;400;500&display=swap');
+
+  :root{
+    --bg: #fbf6f4;
+    --bg-soft: #f6ebee;
+    --ink: #4a3b3f;
+    --ink-soft: #7c6b6f;
+    --rose: #c47a8b;
+    --rose-deep: #a75f71;
+    --rose-pale: #f0dbe0;
+    --gold: #c6a06a;
+    --gold-pale: #f1e6d3;
+    --rule: #e8d6da;
+    --max: 720px;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  body{
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior: auto; }
+    *{ transition: none !important; animation: none !important; }
+  }
+
+  h1, h2, h3{
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    color: var(--rose-deep);
+    margin: 0 0 0.6em;
+    line-height: 1.15;
+  }
+  h1{ font-size: clamp(2.4rem, 6vw, 3.4rem); }
+  h2{ font-size: clamp(1.9rem, 4.5vw, 2.4rem); }
+  h3{ font-size: 1.4rem; color: var(--ink); }
+  em{ font-style: italic; color: var(--rose-deep); }
+
+  a{ color: var(--rose-deep); }
+  a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible{
+    outline: 2px solid var(--rose-deep);
+    outline-offset: 3px;
+  }
+
+  /* ---------- nav ---------- */
+  .nav{
+    display: flex; justify-content: center; gap: 2.5rem;
+    padding: 1.4rem 1rem;
+    background: rgba(251,246,244,0.92);
+    backdrop-filter: blur(6px);
+    position: sticky; top: 0; z-index: 100;
+    border-bottom: 1px solid var(--rule);
+  }
+  .nav a{
+    color: var(--ink); text-decoration: none;
+    font-size: 0.95rem; letter-spacing: 0.02em;
+  }
+  .nav a:hover{ color: var(--rose-deep); }
+
+  section{ padding: 4.5rem 1.5rem; }
+  .wrap{ max-width: var(--max); margin: 0 auto; }
+  .center{ text-align: center; }
+
+  /* ---------- hero ---------- */
+  .hero{ text-align: center; }
+  .blob-frame{
+    width: 260px; height: 260px; overflow: hidden;
+    border-radius: 58% 42% 32% 68% / 58% 32% 68% 42%;
+    margin: 0 auto 2.2rem;
+    box-shadow: 0 14px 30px -12px rgba(167, 95, 113, 0.35);
+  }
+  .blob-frame img{ width: 100%; height: 100%; object-fit: cover; }
+
+  .bio{ max-width: 540px; margin: 0 auto 2rem; font-size: 1.08rem; color: var(--ink); }
+  .bio p{ margin: 0 0 1.1em; }
+
+  .pill-link{
+    display: inline-flex; align-items: center; gap: 0.55rem;
+    color: var(--rose-deep); text-decoration: none;
+    font-size: 0.92rem;
+    border: 1px solid var(--rose); padding: 0.6rem 1.4rem;
+    border-radius: 999px;
+  }
+  .pill-link:hover{ background: var(--rose-pale); }
+
+  /* ---------- wonder board ---------- */
+  .board{ background: var(--bg-soft); }
+  .board .kicker{
+    font-family: 'Fraunces', serif; font-style: italic;
+    color: var(--ink-soft); font-size: 1.05rem; margin-bottom: 2.6rem;
+  }
+
+  .affirmation{
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 2.2rem 0;
+    margin-bottom: 3.2rem;
+    text-align: center;
+  }
+  .affirmation blockquote{
+    margin: 0 0 1.1rem;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1.5rem;
+    color: var(--ink);
+  }
+  .affirmation button{
+    background: none; border: none; cursor: pointer;
+    color: var(--rose-deep); font-family: 'Jost', sans-serif;
+    font-size: 0.85rem; letter-spacing: 0.03em;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--rose);
+  }
+  .affirmation button:hover{ color: var(--rose-deep); background: transparent; }
+
+  .board h3{ text-align: center; margin-bottom: 0.4rem; }
+  .board .section-note{
+    text-align: center; color: var(--ink-soft); font-size: 0.92rem;
+    margin-bottom: 1.8rem;
+  }
+
+  .vision-grid{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.9rem;
+    margin-bottom: 3.4rem;
+  }
+  .vision-tile{
+    aspect-ratio: 1;
+    border-radius: 18px;
+    display: flex; align-items: flex-end;
+    padding: 0.9rem;
+    color: #fff;
+    font-family: 'Fraunces', serif; font-size: 1.05rem;
+    background-size: cover; background-position: center;
+  }
+  .vision-tile span{
+    background: rgba(74,59,63,0.35);
+    padding: 0.2rem 0.6rem; border-radius: 8px;
+    backdrop-filter: blur(2px);
+  }
+  /* Placeholder tones -- swap each background for a real photo when ready:
+     .vision-tile { background-image: url('your-photo.jpg'); } */
+  .t1{ background: linear-gradient(160deg, #d9a3b1, #c47a8b); }
+  .t2{ background: linear-gradient(160deg, #e3c9a3, #c6a06a); }
+  .t3{ background: linear-gradient(160deg, #b9c6b0, #8fa583); }
+  .t4{ background: linear-gradient(160deg, #cbb7d6, #9c84ab); }
+  .t5{ background: linear-gradient(160deg, #e3d3b8, #c9a876); }
+  .t6{ background: linear-gradient(160deg, #a9c2c9, #6f95a0); }
+
+  .merch{
+    background: var(--gold-pale);
+    border-radius: 20px;
+    padding: 2.2rem 1.8rem;
+    text-align: center;
+  }
+  .merch .tag{
+    display: inline-block; font-size: 0.78rem; letter-spacing: 0.05em;
+    color: var(--gold); border: 1px solid var(--gold);
+    border-radius: 999px; padding: 0.2rem 0.8rem; margin-bottom: 1rem;
+  }
+  .merch h3{ margin-bottom: 0.5rem; }
+  .merch p{ color: var(--ink-soft); margin-bottom: 1.5rem; max-width: 420px; margin-left: auto; margin-right: auto; }
+  .notify-form{
+    display: flex; gap: 0.6rem; max-width: 380px; margin: 0 auto;
+    flex-wrap: wrap; justify-content: center;
+  }
+  .notify-form input[type="email"]{
+    flex: 1 1 200px; padding: 0.75rem 1rem; border-radius: 999px;
+    border: 1px solid var(--rule); font-family: 'Jost', sans-serif; font-size: 0.95rem;
+    background: #fff; color: var(--ink);
+  }
+  .notify-form button{
+    background: var(--rose-deep); color: #fff; border: none;
+    padding: 0.75rem 1.5rem; border-radius: 999px; cursor: pointer;
+    font-family: 'Jost', sans-serif; font-size: 0.95rem;
+  }
+  .notify-form button:hover{ background: var(--rose); }
+  .notify-note{ font-size: 0.8rem; color: var(--ink-soft); margin-top: 0.9rem; }
+
+  /* ---------- blog ---------- */
+  .blog-section h2{ text-align: center; }
+
+  .admin-section{
+    display: none;
+    background: #fff;
+    border: 1px solid var(--rule);
+    padding: 2rem;
+    border-radius: 16px;
+    margin: 2.5rem 0 3.5rem;
+    text-align: left;
+  }
+  .admin-section h3{ margin-top: 0; }
+  .admin-section hr{ border: 0; border-top: 1px solid var(--rule); margin: 1.8rem 0; }
+  .admin-section label{ display:block; margin-bottom:0.5rem; font-size:0.88rem; color: var(--ink-soft); }
+  .admin-section input[type="text"], .admin-section textarea{
+    width: 100%; margin-bottom: 1.3rem; padding: 0.85rem 1rem;
+    border: 1px solid var(--rule); border-radius: 10px;
+    font-family: 'Jost', sans-serif; font-size: 1rem; color: var(--ink);
+    background: var(--bg);
+  }
+  .admin-section input[type="file"]{ margin-bottom: 1.3rem; font-size: 0.9rem; }
+  .admin-section button{
+    background: var(--rose-deep); color: #fff; border: none;
+    padding: 0.8rem 1.8rem; border-radius: 10px; cursor: pointer;
+    font-family: 'Jost', sans-serif; font-size: 0.98rem;
+  }
+  .admin-section button:hover{ background: var(--rose); }
+
+  .post-card{
+    text-align: left; margin-bottom: 3.2rem; padding-bottom: 2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .post-card img, .post-card video{ width: 100%; border-radius: 14px; margin-bottom: 1.4rem; }
+  .post-card h3{ font-family: 'Fraunces', serif; font-weight: 500; color: var(--rose-deep); font-size: 1.7rem; margin-bottom: 0.3rem; }
+  .post-date{ font-size: 0.82rem; color: var(--ink-soft); display: block; margin-bottom: 0.9rem; }
+  .post-card p{ margin: 0 0 1.2rem; }
+
+  .empty-state{ text-align: center; color: var(--ink-soft); font-style: italic; padding: 1rem 0 2rem; }
+
+  /* ---------- footer ---------- */
+  .footer{
+    text-align: center; padding: 2.6rem 1.5rem;
+    font-size: 0.82rem; color: var(--ink-soft);
+    position: relative;
+  }
+  .lock-icon{
+    position: absolute; right: 1.6rem; bottom: 2rem; cursor: pointer;
+    opacity: 0.28; width: 18px; height: 18px;
+  }
+  .lock-icon:hover{ opacity: 0.7; }
+
+  @media (max-width: 480px){
+    .vision-grid{ grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="#home">Home</a>
+  <a href="#board">Wonder Board</a>
+  <a href="#blog">Blog</a>
+</nav>
+
+<section id="home" class="hero wrap">
+  <h1>to live wonderfully</h1>
+  <div class="blob-frame">
+    <img id="profile-img" src="20241215_090413~2_2.jpg" alt="Portrait of the author">
+  </div>
+  <div class="bio">
+    <p>As a mother and a professional in the healthcare space, I am navigating the beautiful rhythm of life while working from home.</p>
+    <p>Rooted in a deep passion for nurturing new beginnings, I am currently pouring my heart into creating more wonderful things in life.</p>
+  </div>
+  <a href="https://music.apple.com/profile/tolivewonderfully" class="pill-link" target="_blank" rel="noopener">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+    Listen alongside me
+  </a>
+</section>
+
+<section id="board" class="board">
+  <div class="wrap">
+    <h2 class="center">The Wonder Board</h2>
+    <p class="kicker center">a little motivation, a little vision, a little of what's coming</p>
+
+    <div class="affirmation">
+      <blockquote id="affirmation-text">"Small, steady steps are still steps forward."</blockquote>
+      <button onclick="newAffirmation()">Another thought →</button>
+    </div>
+
+    <h3>Vision board</h3>
+    <p class="section-note">the feelings I'm building my days around right now</p>
+    <div class="vision-grid">
+      <div class="vision-tile t1"><span>Family</span></div>
+      <div class="vision-tile t2"><span>Rest</span></div>
+      <div class="vision-tile t3"><span>Growth</span></div>
+      <div class="vision-tile t4"><span>Faith</span></div>
+      <div class="vision-tile t5"><span>Home</span></div>
+      <div class="vision-tile t6"><span>Adventure</span></div>
+    </div>
+
+    <div class="merch">
+      <span class="tag">coming soon</span>
+      <h3>A little "to live wonderfully" merch</h3>
+      <p>Mugs, totes, and a few cozy things are in the works. Leave your email and I'll let you know the moment they're ready.</p>
+      <form class="notify-form" onsubmit="notifyMe(event)">
+        <label for="notify-email" class="sr-only" style="position:absolute;left:-9999px;">Email address</label>
+        <input type="email" id="notify-email" placeholder="your email" required>
+        <button type="submit">Notify me</button>
+      </form>
+      <p class="notify-note" id="notify-note">This just saves your email to this browser for now — connect a form service (Mailchimp, ConvertKit, etc.) to collect these for real.</p>
+    </div>
+  </div>
+</section>
+
+<section id="blog" class="blog-section wrap">
+  <h2>Blog</h2>
+
+  <div id="admin-panel" class="admin-section">
+    <h3>Update profile photo</h3>
+    <label>Upload your "About Me" photo</label>
+    <input type="file" id="profile-upload" accept="image/*">
+    <button onclick="updateProfilePhoto()">Save profile photo</button>
+
+    <hr>
+
+    <h3>Compose a new post</h3>
+    <input type="text" id="post-title" placeholder="Post title" required>
+    <textarea id="post-content" rows="6" placeholder="Write your thoughts..." required></textarea>
+    <label>Upload a photo or video</label>
+    <input type="file" id="post-media" accept="image/*,video/*">
+    <button onclick="publishPost()">Publish post</button>
+  </div>
+
+  <div id="blog-feed"></div>
+</section>
+
+<footer class="footer">
+  &copy; 2026 to live wonderfully
+  <svg class="lock-icon" onclick="attemptLogin()" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg>
+</footer>
+
+<script>
+  // ---------- affirmations ----------
+  const affirmations = [
+    "Small, steady steps are still steps forward.",
+    "You are allowed to rest without earning it first.",
+    "The wonderful things in life are usually the quiet ones.",
+    "Today's version of showing up is enough.",
+    "You get to build a life that actually feels like yours.",
+    "Growth is rarely loud. Keep going anyway."
+  ];
+  function newAffirmation(){
+    const el = document.getElementById('affirmation-text');
+    let next;
+    do { next = affirmations[Math.floor(Math.random() * affirmations.length)]; }
+    while (next === el.textContent.replace(/"/g,'') && affirmations.length > 1);
+    el.textContent = '"' + next + '"';
+  }
+
+  // ---------- merch notify (placeholder, browser-only) ----------
+  function notifyMe(e){
+    e.preventDefault();
+    const email = document.getElementById('notify-email').value;
+    let list = JSON.parse(localStorage.getItem('merchNotifyList')) || [];
+    list.push(email);
+    localStorage.setItem('merchNotifyList', JSON.stringify(list));
+    document.getElementById('notify-note').textContent = "Thank you — you're on the list! (Remember: hook this up to a real email service before launch, or these signups only live in this browser.)";
+    e.target.reset();
+  }
+
+  // ---------- admin passcode gate ----------
+  // IMPORTANT: this is a client-side deterrent, not real security. Anyone who
+  // opens "view source" already has this entire panel and script downloaded
+  // to their browser; a determined visitor can unhide it with dev tools
+  // regardless of the passcode. Do not rely on this to protect anything
+  // sensitive. A hash is stored instead of the plain passcode so it at least
+  // isn't readable at a glance, but it can still be brute-forced offline.
+  const PASSCODE_HASH = "a6736fe2563e3c054d1095d07a1a6802e21227c7604bb2d704e6bdefabfb3718";
+
+  async function sha256(text){
+    const data = new TextEncoder().encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  async function attemptLogin(){
+    const passcode = prompt("Enter admin passcode:");
+    if (passcode === null) return;
+    const hash = await sha256(passcode);
+    if (hash === PASSCODE_HASH) {
+      document.getElementById('admin-panel').style.display = 'block';
+      window.scrollTo(0, document.getElementById('admin-panel').offsetTop);
+      alert("Access granted. Welcome back.");
+    } else {
+      alert("Access denied. Incorrect passcode.");
+    }
+  }
+
+  // ---------- profile photo + posts ----------
+  // NOTE: these are saved with localStorage, which lives only in this one
+  // browser on this one device. Posts you publish here will show up for
+  // you, but will NOT appear for readers visiting on their own devices.
+  // For posts to be visible to real readers, they need to be saved
+  // somewhere shared (a small database, a headless CMS, or a backend API)
+  // instead of localStorage.
+  window.onload = function() {
+    const savedProfile = localStorage.getItem('profilePhoto');
+    if (savedProfile) document.getElementById('profile-img').src = savedProfile;
+    renderPosts();
+  };
+
+  function updateProfilePhoto(){
+    const fileInput = document.getElementById('profile-upload');
+    if (fileInput.files && fileInput.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e){
+        document.getElementById('profile-img').src = e.target.result;
+        localStorage.setItem('profilePhoto', e.target.result);
+        alert('Profile photo updated beautifully!');
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    } else {
+      alert('Please select a photo first.');
+    }
+  }
+
+  function publishPost(){
+    const title = document.getElementById('post-title').value;
+    const content = document.getElementById('post-content').value;
+    const mediaInput = document.getElementById('post-media');
+
+    if (!title || !content) {
+      alert('Please provide a title and your beautiful thoughts.');
+      return;
+    }
+
+    const post = {
+      title, content,
+      date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      media: null, mediaType: null
+    };
+
+    if (mediaInput.files && mediaInput.files[0]) {
+      const file = mediaInput.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e){
+        post.media = e.target.result;
+        post.mediaType = file.type.startsWith('video') ? 'video' : 'image';
+        saveAndRenderPost(post);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      saveAndRenderPost(post);
+    }
+  }
+
+  function saveAndRenderPost(post){
+    let posts = JSON.parse(localStorage.getItem('blogPosts')) || [];
+    posts.unshift(post);
+    localStorage.setItem('blogPosts', JSON.stringify(posts));
+
+    document.getElementById('post-title').value = '';
+    document.getElementById('post-content').value = '';
+    document.getElementById('post-media').value = '';
+
+    renderPosts();
+    alert('Your post has been published!');
+  }
+
+  function renderPosts(){
+    const feed = document.getElementById('blog-feed');
+    let posts = JSON.parse(localStorage.getItem('blogPosts')) || [];
+
+    if (posts.length === 0) {
+      feed.innerHTML = '<p class="empty-state">New posts will appear here.</p>';
+      return;
+    }
+
+    feed.innerHTML = posts.map(post => {
+      let mediaHTML = '';
+      if (post.media) {
+        mediaHTML = post.mediaType === 'video'
+          ? `<video controls src="${post.media}"></video>`
+          : `<img src="${post.media}" alt="">`;
+      }
+      return `
+        <div class="post-card">
+          ${mediaHTML}
+          <h3>${post.title}</h3>
+          <span class="post-date">${post.date}</span>
+          <p>${post.content.replace(/\n/g, '<br>')}</p>
+        </div>
+      `;
+    }).join('');
+  }
+</script>
+</body>
+</html>

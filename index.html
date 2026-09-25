@@ -145,9 +145,17 @@
     padding: 0.9rem;
     color: #fff;
     font-family: 'Fraunces', serif; font-size: 1.05rem;
-    background-size: cover; background-position: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .vision-tile .vision-media{
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: 50% 50%;
   }
   .vision-tile span{
+    position: relative; z-index: 1;
     background: rgba(74,59,63,0.35);
     padding: 0.2rem 0.6rem; border-radius: 8px;
     backdrop-filter: blur(2px);
@@ -160,6 +168,45 @@
   .t4{ background: linear-gradient(160deg, #cbb7d6, #9c84ab); }
   .t5{ background: linear-gradient(160deg, #e3d3b8, #c9a876); }
   .t6{ background: linear-gradient(160deg, #a9c2c9, #6f95a0); }
+
+  /* ---------- vision board editor (reposition preview) ---------- */
+  .vision-edit-row{ margin-bottom: 0.4rem; }
+  .vision-reposition{
+    position: relative;
+    width: 140px; height: 140px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    margin-bottom: 0.6rem;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+  }
+  .vision-reposition:active{ cursor: grabbing; }
+  .vision-reposition .vision-media{
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: 50% 50%;
+    pointer-events: none;
+  }
+  .vision-reposition .vision-reposition-hint{
+    position: absolute; inset: auto 0 0 0;
+    text-align: center;
+    font-size: 0.68rem; color: #fff;
+    background: rgba(74,59,63,0.45);
+    padding: 0.2rem 0.3rem;
+    pointer-events: none;
+  }
+  .vision-reposition.empty .vision-reposition-hint{ display: none; }
+  .vision-reposition.empty::before{
+    content: "No photo or video yet";
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; font-size: 0.78rem; color: var(--ink-soft);
+    padding: 0.5rem;
+  }
 
   .merch{
     background: var(--gold-pale);
@@ -411,20 +458,107 @@
 
   // ---------- vision board (shared for every reader, saved in Supabase) ----------
   const visionDefaults = ['Calm', 'Gratitude', 'Rest', 'Breath', 'Self-compassion', 'Joy'];
+  // In-memory editor state: { label, media (dataURL|null), mediaType ('image'|'video'|null), posX, posY (0-100) }
+  let visionEditorState = [];
+
+  function makeMediaEl(tile){
+    if (!tile || !tile.media) return null;
+    const type = tile.mediaType || 'image';
+    const el = document.createElement(type === 'video' ? 'video' : 'img');
+    el.className = 'vision-media';
+    el.src = tile.media;
+    el.style.objectPosition = `${tile.posX ?? 50}% ${tile.posY ?? 50}%`;
+    if (type === 'video') {
+      el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
+    }
+    return el;
+  }
 
   function buildVisionEditor(saved){
     saved = saved || [];
-    const editor = document.getElementById('vision-editor');
-    editor.innerHTML = visionDefaults.map((label, i) => {
+    visionEditorState = visionDefaults.map((label, i) => {
       const current = saved[i] || {};
-      const currentLabel = current.label || label;
-      return `
+      return {
+        label: current.label || label,
+        media: current.media || current.image || null, // "image" kept for backward compatibility
+        mediaType: current.mediaType || (current.image ? 'image' : null),
+        posX: current.posX ?? 50,
+        posY: current.posY ?? 50
+      };
+    });
+
+    const editor = document.getElementById('vision-editor');
+    editor.innerHTML = visionEditorState.map((tile, i) => `
+      <div class="vision-edit-row">
         <label>Tile ${i + 1} label</label>
-        <input type="text" class="vision-label-input" data-index="${i}" value="${currentLabel}">
-        <label>Tile ${i + 1} photo (optional)</label>
-        <input type="file" class="vision-image-input" data-index="${i}" accept="image/*">
-      `;
-    }).join('<hr style="margin:1rem 0;">');
+        <input type="text" class="vision-label-input" data-index="${i}" value="${tile.label}">
+        <label>Tile ${i + 1} photo or video (optional) — drag the preview below to reposition</label>
+        <div class="vision-reposition ${tile.media ? '' : 'empty'}" id="vp${i}" data-index="${i}">
+          <span class="vision-reposition-hint">Drag to reposition</span>
+        </div>
+        <input type="file" class="vision-image-input" data-index="${i}" accept="image/*,video/*">
+      </div>
+    `).join('<hr style="margin:1rem 0;">');
+
+    visionEditorState.forEach((tile, i) => {
+      const preview = document.getElementById('vp' + i);
+      const mediaEl = makeMediaEl(tile);
+      if (mediaEl) preview.insertBefore(mediaEl, preview.firstChild);
+      attachRepositionDrag(preview, i);
+    });
+
+    editor.querySelectorAll('.vision-label-input').forEach(input => {
+      input.addEventListener('input', () => {
+        visionEditorState[input.dataset.index].label = input.value;
+      });
+    });
+
+    editor.querySelectorAll('.vision-image-input').forEach(input => {
+      input.addEventListener('change', () => {
+        const i = Number(input.dataset.index);
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+          visionEditorState[i].media = e.target.result;
+          visionEditorState[i].mediaType = file.type.startsWith('video/') ? 'video' : 'image';
+          visionEditorState[i].posX = 50;
+          visionEditorState[i].posY = 50;
+          const preview = document.getElementById('vp' + i);
+          preview.classList.remove('empty');
+          const old = preview.querySelector('.vision-media');
+          if (old) old.remove();
+          const mediaEl = makeMediaEl(visionEditorState[i]);
+          preview.insertBefore(mediaEl, preview.firstChild);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+  }
+
+  function attachRepositionDrag(preview, i){
+    let dragging = false;
+    const setPosFromEvent = (clientX, clientY) => {
+      const rect = preview.getBoundingClientRect();
+      const x = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
+      const y = Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100));
+      visionEditorState[i].posX = Math.round(x);
+      visionEditorState[i].posY = Math.round(y);
+      const mediaEl = preview.querySelector('.vision-media');
+      if (mediaEl) mediaEl.style.objectPosition = `${x}% ${y}%`;
+    };
+    preview.addEventListener('pointerdown', e => {
+      if (!visionEditorState[i].media) return;
+      dragging = true;
+      preview.setPointerCapture(e.pointerId);
+      setPosFromEvent(e.clientX, e.clientY);
+    });
+    preview.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      setPosFromEvent(e.clientX, e.clientY);
+    });
+    preview.addEventListener('pointerup', () => { dragging = false; });
+    preview.addEventListener('pointercancel', () => { dragging = false; });
   }
 
   function renderVisionBoard(saved){
@@ -433,32 +567,37 @@
       const el = document.getElementById('vt' + i);
       if (!el || !tile) return;
       if (tile.label) el.querySelector('span').textContent = tile.label;
-      if (tile.image) el.style.backgroundImage = `url(${tile.image})`;
+      const old = el.querySelector('.vision-media');
+      if (old) old.remove();
+      const media = tile.media || tile.image; // "image" kept for backward compatibility
+      if (media) {
+        const mediaEl = makeMediaEl({
+          media,
+          mediaType: tile.mediaType || (tile.image ? 'image' : 'image'),
+          posX: tile.posX ?? 50,
+          posY: tile.posY ?? 50
+        });
+        el.insertBefore(mediaEl, el.firstChild);
+      }
     });
   }
 
   async function saveVisionBoard(){
-    const { data: current } = await sb.from('site_settings').select('vision_board').eq('id', 1).single();
-    const saved = (current && current.vision_board) || [];
-    const labelInputs = document.querySelectorAll('.vision-label-input');
-    const imageInputs = document.querySelectorAll('.vision-image-input');
-    const next = visionDefaults.map((_, i) => ({
-      label: labelInputs[i].value || visionDefaults[i],
-      image: (saved[i] && saved[i].image) || null
+    const next = visionEditorState.map((tile, i) => ({
+      label: tile.label || visionDefaults[i],
+      media: tile.media || null,
+      mediaType: tile.media ? (tile.mediaType || 'image') : null,
+      posX: tile.posX ?? 50,
+      posY: tile.posY ?? 50
     }));
 
-    const reads = Array.from(imageInputs).map((input, i) => {
-      if (input.files && input.files[0]) {
-        return new Promise(resolve => {
-          const reader = new FileReader();
-          reader.onload = e => { next[i].image = e.target.result; resolve(); };
-          reader.readAsDataURL(input.files[0]);
-        });
-      }
-      return Promise.resolve();
-    });
+    // Rough client-side guard: base64 video/photo is stored directly in the database row,
+    // so keep an eye on total size to avoid a slow-loading page.
+    const totalBytes = next.reduce((sum, t) => sum + (t.media ? t.media.length * 0.75 : 0), 0);
+    if (totalBytes > 15 * 1024 * 1024) {
+      if (!confirm('Your vision board media adds up to a fairly large size, which can slow the page down for visitors. Save anyway?')) return;
+    }
 
-    await Promise.all(reads);
     const { error } = await sb.from('site_settings').update({ vision_board: next }).eq('id', 1);
     if (error) { alert('Could not save — try logging in again.'); return; }
     renderVisionBoard(next);

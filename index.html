@@ -384,6 +384,23 @@
     background: var(--bg-soft); border-radius: 12px; padding: 0.7rem 0.9rem;
     margin-bottom: 0.6rem; position: relative;
   }
+  .comment-item.pending-comment{
+    background: var(--gold-pale); border: 1px dashed var(--gold);
+  }
+  .pending-label{
+    font-size: 0.68rem; color: var(--gold); margin-left: 0.5rem;
+    text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .comment-approve{
+    background: none; border: 1px solid var(--gold); color: var(--gold);
+    border-radius: 999px; padding: 0.15rem 0.7rem; font-size: 0.72rem;
+    cursor: pointer; margin-left: 0.5rem; font-family: 'Jost', sans-serif;
+  }
+  .comment-approve:hover{ background: var(--gold); color: #fff; }
+  .comment-pending-note{
+    font-size: 0.82rem; color: var(--rose-deep); font-style: italic;
+    margin: -0.4rem 0 1rem; display: none;
+  }
   .comment-item .comment-name{ font-weight: 500; color: var(--rose-deep); font-size: 0.88rem; }
   .comment-item .comment-date{ font-size: 0.72rem; color: var(--ink-soft); margin-left: 0.4rem; }
   .comment-item p{ margin: 0.25rem 0 0; font-size: 0.92rem; }
@@ -458,7 +475,7 @@
   <div class="recommended">
     <span class="tag">wellness picks</span>
     <h3>Things I love &amp; recommend</h3>
-    <p class="section-note">A few wellness finds I personally use. Some links below are affiliate links, meaning I may earn a small commission at no extra cost to you.</p>
+    <p class="section-note">Things I love and you can try too. (A few of these links may be affiliate ones, just a quiet little note in case you're curious.)</p>
     <div class="product-grid" id="product-grid"></div>
     <p class="empty-state" id="product-empty" style="display:none;">Recommendations coming soon.</p>
   </div>
@@ -609,7 +626,7 @@
       a.classList.toggle('active-link', a.getAttribute('href') === '#' + id);
     });
     window.scrollTo(0, 0);
-    history.replaceState(null, '', '#' + id);
+    try { history.replaceState(null, '', '#' + id); } catch (err) { /* sandboxed preview — safe to ignore */ }
   }
   document.querySelectorAll('.nav a').forEach(a => {
     a.addEventListener('click', e => {
@@ -1032,6 +1049,7 @@
               <textarea class="comment-text" rows="2" placeholder="Leave a kind word..." required></textarea>
               <button type="submit">Post comment</button>
             </form>
+            <p class="comment-pending-note" id="pending-note-${post.id}">Thanks — your comment has been sent for review and will appear once approved.</p>
           </div>
         </div>
       `;
@@ -1106,9 +1124,11 @@
     loadPosts();
   }
 
-  // ---------- comments (readers can comment on each post) ----------
+  // ---------- comments (readers can comment; held for review before showing publicly) ----------
   async function loadComments(postId){
-    const { data } = await sb.from('comments').select('*').eq('post_id', postId).order('created_at', { ascending: true });
+    let query = sb.from('comments').select('*').eq('post_id', postId).order('created_at', { ascending: true });
+    if (!isAdmin) query = query.eq('approved', true);
+    const { data } = await query;
     const list = document.getElementById('comments-' + postId);
     if (!list) return;
     const comments = data || [];
@@ -1118,11 +1138,14 @@
     }
     list.innerHTML = comments.map(c => {
       const dateStr = new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const pending = !c.approved;
       const delBtn = isAdmin ? `<button type="button" class="comment-delete" onclick="deleteComment('${c.id}', '${postId}')" title="Delete comment">✕</button>` : '';
+      const approveBtn = (isAdmin && pending) ? `<button type="button" class="comment-approve" onclick="approveComment('${c.id}', '${postId}')">Approve</button>` : '';
+      const pendingLabel = pending ? '<span class="pending-label">Pending review</span>' : '';
       return `
-        <div class="comment-item">
+        <div class="comment-item${pending ? ' pending-comment' : ''}">
           ${delBtn}
-          <span class="comment-name">${c.name}</span><span class="comment-date">${dateStr}</span>
+          <span class="comment-name">${c.name}</span><span class="comment-date">${dateStr}</span>${pendingLabel}${approveBtn}
           <p>${c.comment}</p>
         </div>
       `;
@@ -1136,12 +1159,20 @@
     const comment = form.querySelector('.comment-text').value.trim();
     if (!name || !comment) return false;
     (async () => {
-      const { error } = await sb.from('comments').insert({ post_id: postId, name, comment });
+      const { error } = await sb.from('comments').insert({ post_id: postId, name, comment, approved: false });
       if (error) { alert('Could not post your comment just yet — please try again.'); return; }
       form.reset();
+      const note = document.getElementById('pending-note-' + postId);
+      if (note) note.style.display = 'block';
       loadComments(postId);
     })();
     return false;
+  }
+
+  async function approveComment(id, postId){
+    const { error } = await sb.from('comments').update({ approved: true }).eq('id', id);
+    if (error) { alert('Could not approve — try logging in again.'); return; }
+    loadComments(postId);
   }
 
   async function deleteComment(id, postId){

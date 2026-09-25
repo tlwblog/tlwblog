@@ -364,6 +364,8 @@
     border-bottom: 1px solid var(--rule);
   }
   .post-card img, .post-card video{ width: 100%; border-radius: 14px; margin-bottom: 1.4rem; }
+  .post-media-gallery{ display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.8rem; margin-bottom: 1.4rem; }
+  .post-media-gallery img, .post-media-gallery video{ width: 100%; height: 100%; border-radius: 14px; margin-bottom: 0; object-fit: cover; }
   .post-card h3{ font-family: 'Fraunces', serif; font-weight: 500; color: var(--rose-deep); font-size: 1.7rem; margin-bottom: 0.3rem; }
   .post-date{ font-size: 0.82rem; color: var(--ink-soft); display: block; margin-bottom: 0.9rem; }
   .post-card .post-body p{ margin: 0 0 1.2rem; }
@@ -581,8 +583,8 @@
       </select>
     </div>
     <div id="post-content" class="post-editor" contenteditable="true" data-placeholder="Write your thoughts..."></div>
-    <label>Upload a photo or video</label>
-    <input type="file" id="post-media" accept="image/*,video/*">
+    <label>Upload photos and/or videos (up to 20 images and 10 videos)</label>
+    <input type="file" id="post-media" accept="image/*,video/*" multiple>
     <div class="editor-actions">
       <button id="publish-btn" onclick="publishPost()">Publish post</button>
       <button type="button" class="cancel-edit-link" id="cancel-edit-btn" onclick="cancelEditPost()" style="display:none;">Cancel edit</button>
@@ -1018,15 +1020,34 @@
     renderPosts(cachedPosts);
   }
 
+  // Reads a post's media as an array of {data, type}, whatever format it was saved in
+  // (new posts store a JSON array in media_data; older posts store one raw data URL).
+  function getPostMediaItems(post){
+    if (!post.media_data) return [];
+    try {
+      const parsed = JSON.parse(post.media_data);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) { /* not JSON — fall through to legacy single-media format */ }
+    return [{ data: post.media_data, type: post.media_type }];
+  }
+
   function renderPosts(posts){
     const feed = document.getElementById('blog-feed');
     if (!posts.length) { feed.innerHTML = ''; return; }
     feed.innerHTML = posts.map(post => {
       let mediaHTML = '';
-      if (post.media_data) {
-        mediaHTML = post.media_type === 'video'
-          ? `<video controls src="${post.media_data}"></video>`
-          : `<img src="${post.media_data}" alt="">`;
+      const mediaItems = getPostMediaItems(post);
+      if (mediaItems.length === 1) {
+        const m = mediaItems[0];
+        mediaHTML = m.type === 'video'
+          ? `<video controls src="${m.data}"></video>`
+          : `<img src="${m.data}" alt="">`;
+      } else if (mediaItems.length > 1) {
+        mediaHTML = `<div class="post-media-gallery">` + mediaItems.map(m =>
+          m.type === 'video'
+            ? `<video controls src="${m.data}"></video>`
+            : `<img src="${m.data}" alt="">`
+        ).join('') + `</div>`;
       }
       const dateStr = new Date(post.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       const ownerActions = isAdmin ? `
@@ -1067,17 +1088,27 @@
 
     if (!title || !editor.textContent.trim()) { alert('Please provide a title and your beautiful thoughts.'); return; }
 
+    const MAX_IMAGES = 20, MAX_VIDEOS = 10;
     let media_data = null, media_type = null;
-    if (mediaInput.files && mediaInput.files[0]) {
-      const file = mediaInput.files[0];
-      media_data = await new Promise(resolve => {
+    if (mediaInput.files && mediaInput.files.length) {
+      const files = Array.from(mediaInput.files);
+      const imageCount = files.filter(f => f.type.startsWith('image')).length;
+      const videoCount = files.filter(f => f.type.startsWith('video')).length;
+      if (imageCount > MAX_IMAGES) { alert(`You can upload up to ${MAX_IMAGES} images per post.`); return; }
+      if (videoCount > MAX_VIDEOS) { alert(`You can upload up to ${MAX_VIDEOS} videos per post.`); return; }
+
+      const mediaItems = await Promise.all(files.map(file => new Promise(resolve => {
         const reader = new FileReader();
-        reader.onload = e => resolve(e.target.result);
+        reader.onload = e => resolve({
+          data: e.target.result,
+          type: file.type.startsWith('video') ? 'video' : 'image'
+        });
         reader.readAsDataURL(file);
-      });
-      media_type = file.type.startsWith('video') ? 'video' : 'image';
+      })));
+      media_data = JSON.stringify(mediaItems);
+      media_type = null;
     } else if (editingPostId) {
-      // keep the existing media unless a new file was chosen
+      // keep the existing media unless new files were chosen
       const existing = cachedPosts.find(p => String(p.id) === String(editingPostId));
       if (existing) { media_data = existing.media_data; media_type = existing.media_type; }
     }

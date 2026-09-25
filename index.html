@@ -848,6 +848,7 @@
   let isAdmin = false;
 
   function toggleLogin(){
+    showSection('blog');
     const panel = document.getElementById('login-panel');
     const show = panel.style.display !== 'block';
     panel.style.display = show ? 'block' : 'none';

@@ -69,6 +69,11 @@
     font-size: 0.95rem; letter-spacing: 0.02em;
   }
   .nav a:hover{ color: var(--rose-deep); }
+  .nav a.active-link{ color: var(--rose-deep); border-bottom: 1px solid var(--rose-deep); padding-bottom: 0.25rem; }
+
+  /* ---------- tabbed sections: only one visible at a time ---------- */
+  .page-section{ display: none; }
+  .page-section.active{ display: block; }
 
   section{ padding: 4.5rem 1.5rem; }
   .wrap{ max-width: var(--max); margin: 0 auto; }
@@ -95,6 +100,65 @@
     border-radius: 999px;
   }
   .pill-link:hover{ background: var(--rose-pale); }
+
+  /* ---------- meditation ---------- */
+  .meditation{
+    text-align: center;
+    margin: 3.4rem 0;
+    padding: 2.4rem 1.5rem;
+    background: var(--bg-soft);
+    border-radius: 20px;
+  }
+  .meditation h3{ margin-bottom: 0.4rem; }
+  .breathe-circle{
+    width: 130px; height: 130px;
+    margin: 1.6rem auto 1.4rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--rose-pale), var(--rose));
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-family: 'Fraunces', serif; font-style: italic; font-size: 0.95rem;
+    animation: breathe 10s ease-in-out infinite;
+    box-shadow: 0 10px 26px -10px rgba(167, 95, 113, 0.45);
+  }
+  @keyframes breathe{
+    0%{ transform: scale(1); }
+    40%{ transform: scale(1.28); }
+    60%{ transform: scale(1.28); }
+    100%{ transform: scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .breathe-circle{ animation: none; }
+  }
+
+  /* ---------- recommended products (affiliate) ---------- */
+  .recommended{ margin: 3.4rem 0; text-align: center; }
+  .recommended .tag{
+    display: inline-block; font-size: 0.78rem; letter-spacing: 0.05em;
+    color: var(--gold); border: 1px solid var(--gold);
+    border-radius: 999px; padding: 0.2rem 0.8rem; margin-bottom: 1rem;
+  }
+  .product-grid{
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.1rem;
+    margin-top: 1.6rem;
+    text-align: left;
+  }
+  .product-card{
+    background: #fff; border: 1px solid var(--rule); border-radius: 16px;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .product-card img{ width: 100%; aspect-ratio: 1; object-fit: cover; }
+  .product-card .product-body{ padding: 0.9rem 1rem 1.2rem; }
+  .product-card h4{
+    font-family: 'Fraunces', serif; color: var(--rose-deep); font-weight: 500;
+    font-size: 1.05rem; margin: 0 0 0.35rem;
+  }
+  .product-card p{ font-size: 0.88rem; color: var(--ink-soft); margin: 0 0 0.9rem; }
+  .product-card .pill-link{ font-size: 0.82rem; padding: 0.45rem 1rem; }
+  @media (max-width: 480px){
+    .product-grid{ grid-template-columns: 1fr; }
+  }
 
   /* ---------- wonder board ---------- */
   .board{ background: var(--bg-soft); }
@@ -267,14 +331,81 @@
   }
   .admin-section button:hover{ background: var(--rose); }
 
+  .editor-toolbar{
+    display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.6rem; flex-wrap: wrap;
+  }
+  .editor-toolbar button{
+    width: 34px; height: 34px; border: 1px solid var(--rule); background: #fff;
+    border-radius: 8px; cursor: pointer; color: var(--ink); font-family: 'Jost', sans-serif;
+  }
+  .editor-toolbar button.active-format{ background: var(--rose-pale); border-color: var(--rose); }
+  .editor-toolbar button:hover{ background: var(--rose-pale); }
+  .editor-toolbar select{
+    padding: 0.45rem 0.6rem; border-radius: 8px; border: 1px solid var(--rule);
+    font-family: 'Jost', sans-serif; font-size: 0.85rem; background: #fff; color: var(--ink);
+  }
+  .post-editor{
+    min-height: 160px; border: 1px solid var(--rule); border-radius: 10px;
+    padding: 0.85rem 1rem; margin-bottom: 1.3rem; background: var(--bg);
+    font-family: 'Jost', sans-serif; font-size: 1rem; color: var(--ink);
+  }
+  .post-editor:focus{ outline: 2px solid var(--rose-deep); outline-offset: 2px; }
+  .post-editor:empty::before{ content: attr(data-placeholder); color: var(--ink-soft); }
+  .editor-actions{ display: flex; gap: 0.7rem; align-items: center; }
+  .cancel-edit-link{
+    background: none; border: none; color: var(--ink-soft); cursor: pointer;
+    font-family: 'Jost', sans-serif; font-size: 0.88rem; text-decoration: underline;
+    padding: 0.5rem 0;
+  }
+
   .post-card{
+    position: relative;
     text-align: left; margin-bottom: 3.2rem; padding-bottom: 2rem;
     border-bottom: 1px solid var(--rule);
   }
   .post-card img, .post-card video{ width: 100%; border-radius: 14px; margin-bottom: 1.4rem; }
   .post-card h3{ font-family: 'Fraunces', serif; font-weight: 500; color: var(--rose-deep); font-size: 1.7rem; margin-bottom: 0.3rem; }
   .post-date{ font-size: 0.82rem; color: var(--ink-soft); display: block; margin-bottom: 0.9rem; }
-  .post-card p{ margin: 0 0 1.2rem; }
+  .post-card .post-body p{ margin: 0 0 1.2rem; }
+  .post-owner-actions{ display: flex; gap: 0.8rem; margin-bottom: 1rem; }
+  .post-owner-actions button{
+    background: none; border: 1px solid var(--rule); color: var(--ink-soft);
+    padding: 0.35rem 0.9rem; border-radius: 999px; cursor: pointer;
+    font-family: 'Jost', sans-serif; font-size: 0.78rem;
+  }
+  .post-owner-actions button:hover{ border-color: var(--rose-deep); color: var(--rose-deep); }
+
+  .comments{ margin-top: 1.6rem; }
+  .comments h4{
+    font-family: 'Fraunces', serif; font-size: 1.05rem; color: var(--ink); margin: 0 0 0.8rem;
+  }
+  .comment-list{ margin-bottom: 1rem; }
+  .comment-item{
+    background: var(--bg-soft); border-radius: 12px; padding: 0.7rem 0.9rem;
+    margin-bottom: 0.6rem; position: relative;
+  }
+  .comment-item .comment-name{ font-weight: 500; color: var(--rose-deep); font-size: 0.88rem; }
+  .comment-item .comment-date{ font-size: 0.72rem; color: var(--ink-soft); margin-left: 0.4rem; }
+  .comment-item p{ margin: 0.25rem 0 0; font-size: 0.92rem; }
+  .comment-delete{
+    position: absolute; top: 0.5rem; right: 0.6rem;
+    background: none; border: none; cursor: pointer; color: var(--ink-soft);
+    font-size: 0.9rem; line-height: 1;
+  }
+  .comment-delete:hover{ color: #a23b3b; }
+  .comment-empty{ font-size: 0.85rem; color: var(--ink-soft); font-style: italic; margin-bottom: 1rem; }
+  .comment-form{ display: flex; flex-direction: column; gap: 0.6rem; }
+  .comment-form input, .comment-form textarea{
+    padding: 0.65rem 0.9rem; border: 1px solid var(--rule); border-radius: 10px;
+    font-family: 'Jost', sans-serif; font-size: 0.92rem; background: #fff; color: var(--ink);
+  }
+  .comment-form button{
+    align-self: flex-start;
+    background: var(--rose-deep); color: #fff; border: none;
+    padding: 0.55rem 1.3rem; border-radius: 999px; cursor: pointer;
+    font-family: 'Jost', sans-serif; font-size: 0.88rem;
+  }
+  .comment-form button:hover{ background: var(--rose); }
 
   .empty-state{ text-align: center; color: var(--ink-soft); font-style: italic; padding: 1rem 0 2rem; }
 
@@ -303,7 +434,7 @@
   <a href="#blog">Blog</a>
 </nav>
 
-<section id="home" class="hero wrap">
+<section id="home" class="hero wrap page-section active">
   <h1>to live wonderfully</h1>
   <div class="blob-frame">
     <img id="profile-img" src="20241215_090413~2_2.jpg" alt="Portrait of the author">
@@ -316,9 +447,24 @@
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
     Listen alongside me
   </a>
+
+  <div class="meditation">
+    <h3>A moment to breathe</h3>
+    <p class="section-note" id="meditation-note">Pause for a few slow breaths before you keep going.</p>
+    <div class="breathe-circle" id="breathe-circle"><span id="breathe-label">Breathe in</span></div>
+    <a href="#" id="meditation-link" class="pill-link" style="display:none;" target="_blank" rel="noopener">Today's guided meditation →</a>
+  </div>
+
+  <div class="recommended">
+    <span class="tag">wellness picks</span>
+    <h3>Things I love &amp; recommend</h3>
+    <p class="section-note">A few wellness finds I personally use. Some links below are affiliate links, meaning I may earn a small commission at no extra cost to you.</p>
+    <div class="product-grid" id="product-grid"></div>
+    <p class="empty-state" id="product-empty" style="display:none;">Recommendations coming soon.</p>
+  </div>
 </section>
 
-<section id="board" class="board">
+<section id="board" class="board page-section">
   <div class="wrap">
     <h2 class="center">The Wonder Board</h2>
     <p class="kicker center">a little motivation, a little vision, a little of what's coming</p>
@@ -353,7 +499,7 @@
   </div>
 </section>
 
-<section id="blog" class="blog-section wrap">
+<section id="blog" class="blog-section wrap page-section">
   <h2>Blog</h2>
 
   <div id="login-panel" class="admin-section" style="max-width:380px; margin-left:auto; margin-right:auto;">
@@ -379,12 +525,51 @@
 
     <hr>
 
-    <h3>Compose a new post</h3>
+    <h3>Meditation section</h3>
+    <label>Note under "A moment to breathe"</label>
+    <input type="text" id="meditation-note-input" placeholder="Pause for a few slow breaths before you keep going.">
+    <label>Guided meditation link (optional — YouTube, Spotify, etc.)</label>
+    <input type="text" id="meditation-link-input" placeholder="https://...">
+    <button onclick="saveMeditation()">Save meditation section</button>
+
+    <hr>
+
+    <h3>Recommended products (affiliate)</h3>
+    <div id="product-admin-list"><!-- current products, with delete buttons --></div>
+    <label>New product name</label>
+    <input type="text" id="new-product-name" placeholder="Product name">
+    <label>Product photo</label>
+    <input type="file" id="new-product-image" accept="image/*">
+    <label>Affiliate / product link</label>
+    <input type="text" id="new-product-link" placeholder="https://...">
+    <label>Short blurb</label>
+    <textarea id="new-product-blurb" rows="2" placeholder="Why you recommend it"></textarea>
+    <button onclick="addProduct()">Add product</button>
+
+    <hr>
+
+    <h3 id="composer-heading">Compose a new post</h3>
     <input type="text" id="post-title" placeholder="Post title" required>
-    <textarea id="post-content" rows="6" placeholder="Write your thoughts..." required></textarea>
+    <label>Write your thoughts</label>
+    <div class="editor-toolbar">
+      <button type="button" onclick="formatDoc('bold')" title="Bold"><b>B</b></button>
+      <button type="button" onclick="formatDoc('italic')" title="Italic"><i>I</i></button>
+      <button type="button" onclick="formatDoc('underline')" title="Underline"><u>U</u></button>
+      <select onchange="formatDoc('fontName', this.value); this.selectedIndex = 0;">
+        <option value="">Font style</option>
+        <option value="'Jost', sans-serif">Jost (default)</option>
+        <option value="'Fraunces', serif">Fraunces (serif)</option>
+        <option value="Georgia, serif">Georgia</option>
+        <option value="'Courier New', monospace">Typewriter</option>
+      </select>
+    </div>
+    <div id="post-content" class="post-editor" contenteditable="true" data-placeholder="Write your thoughts..."></div>
     <label>Upload a photo or video</label>
     <input type="file" id="post-media" accept="image/*,video/*">
-    <button onclick="publishPost()">Publish post</button>
+    <div class="editor-actions">
+      <button id="publish-btn" onclick="publishPost()">Publish post</button>
+      <button type="button" class="cancel-edit-link" id="cancel-edit-btn" onclick="cancelEditPost()" style="display:none;">Cancel edit</button>
+    </div>
 
     <hr>
 
@@ -412,6 +597,43 @@
     'https://ccfmstjugpmewgfbsiwi.supabase.co',
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjZm1zdGp1Z3BtZXdnZmJzaXdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNzg5NDksImV4cCI6MjEwNTg1NDk0OX0.7ajmoWHggJKsFX-B2TZojSMzZFVaNOEXbBJKmG9pdx0'
   );
+
+  // ---------- tabbed sections (Home / Wonder Board / Blog) ----------
+  const pageSectionIds = ['home', 'board', 'blog'];
+  function showSection(id){
+    if (!pageSectionIds.includes(id)) id = 'home';
+    pageSectionIds.forEach(sid => {
+      document.getElementById(sid).classList.toggle('active', sid === id);
+    });
+    document.querySelectorAll('.nav a').forEach(a => {
+      a.classList.toggle('active-link', a.getAttribute('href') === '#' + id);
+    });
+    window.scrollTo(0, 0);
+    history.replaceState(null, '', '#' + id);
+  }
+  document.querySelectorAll('.nav a').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      showSection(a.getAttribute('href').slice(1));
+    });
+  });
+  showSection(pageSectionIds.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home');
+
+  // ---------- breathing exercise label ----------
+  (function cycleBreathLabel(){
+    const label = document.getElementById('breathe-label');
+    const steps = [
+      { text: 'Breathe in', duration: 4000 },
+      { text: 'Hold', duration: 2000 },
+      { text: 'Breathe out', duration: 4000 }
+    ];
+    let i = 0;
+    function next(){
+      label.textContent = steps[i].text;
+      setTimeout(() => { i = (i + 1) % steps.length; next(); }, steps[i].duration);
+    }
+    next();
+  })();
 
   const affirmations = [
     "Small, steady steps are still steps forward.",
@@ -606,6 +828,8 @@
   }
 
   // ---------- admin login (real Supabase auth, not a passcode) ----------
+  let isAdmin = false;
+
   function toggleLogin(){
     const panel = document.getElementById('login-panel');
     const show = panel.style.display !== 'block';
@@ -622,21 +846,129 @@
     if (error) { errorEl.textContent = 'Login failed — check your email and password.'; return; }
     document.getElementById('login-panel').style.display = 'none';
     document.getElementById('admin-panel').style.display = 'block';
+    isAdmin = true;
+    renderProducts(cachedProducts);
+    loadPosts();
     window.scrollTo(0, document.getElementById('admin-panel').offsetTop);
   }
 
   async function logout(){
     await sb.auth.signOut();
     document.getElementById('admin-panel').style.display = 'none';
+    isAdmin = false;
+    cancelEditPost();
+    renderProducts(cachedProducts);
+    loadPosts();
   }
 
   // ---------- profile photo + posts (shared for every reader, saved in Supabase) ----------
+  let cachedProducts = [];
+
   async function loadSiteSettings(){
     const { data } = await sb.from('site_settings').select('*').eq('id', 1).single();
     if (!data) return;
     if (data.profile_photo) document.getElementById('profile-img').src = data.profile_photo;
     renderVisionBoard(data.vision_board);
     buildVisionEditor(data.vision_board);
+
+    const note = data.meditation_note || "Pause for a few slow breaths before you keep going.";
+    document.getElementById('meditation-note').textContent = note;
+    document.getElementById('meditation-note-input').value = data.meditation_note || '';
+    const linkEl = document.getElementById('meditation-link');
+    if (data.meditation_link) {
+      linkEl.href = data.meditation_link;
+      linkEl.style.display = 'inline-flex';
+    } else {
+      linkEl.style.display = 'none';
+    }
+    document.getElementById('meditation-link-input').value = data.meditation_link || '';
+
+    cachedProducts = data.recommended_products || [];
+    renderProducts(cachedProducts);
+  }
+
+  async function saveMeditation(){
+    const meditation_note = document.getElementById('meditation-note-input').value.trim();
+    const meditation_link = document.getElementById('meditation-link-input').value.trim();
+    const { error } = await sb.from('site_settings').update({ meditation_note, meditation_link }).eq('id', 1);
+    if (error) { alert('Could not save — try logging in again.'); return; }
+    document.getElementById('meditation-note').textContent = meditation_note || "Pause for a few slow breaths before you keep going.";
+    const linkEl = document.getElementById('meditation-link');
+    if (meditation_link) { linkEl.href = meditation_link; linkEl.style.display = 'inline-flex'; }
+    else { linkEl.style.display = 'none'; }
+    alert('Meditation section updated for everyone!');
+  }
+
+  // ---------- recommended products (affiliate) ----------
+  function renderProducts(products){
+    products = products || [];
+    const grid = document.getElementById('product-grid');
+    const empty = document.getElementById('product-empty');
+    if (!products.length) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+    } else {
+      empty.style.display = 'none';
+      grid.innerHTML = products.map(p => `
+        <div class="product-card">
+          ${p.image ? `<img src="${p.image}" alt="${p.name}">` : ''}
+          <div class="product-body">
+            <h4>${p.name}</h4>
+            <p>${p.blurb || ''}</p>
+            ${p.link ? `<a href="${p.link}" class="pill-link" target="_blank" rel="nofollow sponsored noopener">Shop now →</a>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    const adminList = document.getElementById('product-admin-list');
+    if (adminList) {
+      adminList.innerHTML = !products.length
+        ? '<p class="empty-state" style="padding:0 0 1rem;">No products added yet.</p>'
+        : products.map((p, i) => `
+          <div class="post-owner-actions" style="justify-content:space-between; border:1px solid var(--rule); border-radius:10px; padding:0.7rem 1rem; margin-bottom:0.6rem;">
+            <span style="font-size:0.9rem;">${p.name}</span>
+            <button type="button" onclick="deleteProduct(${i})">Delete</button>
+          </div>
+        `).join('');
+    }
+  }
+
+  async function saveProducts(next){
+    const { error } = await sb.from('site_settings').update({ recommended_products: next }).eq('id', 1);
+    if (error) { alert('Could not save — try logging in again.'); return; }
+    cachedProducts = next;
+    renderProducts(cachedProducts);
+  }
+
+  async function addProduct(){
+    const name = document.getElementById('new-product-name').value.trim();
+    const link = document.getElementById('new-product-link').value.trim();
+    const blurb = document.getElementById('new-product-blurb').value.trim();
+    const fileInput = document.getElementById('new-product-image');
+    if (!name) { alert('Please give the product a name.'); return; }
+
+    let image = null;
+    if (fileInput.files && fileInput.files[0]) {
+      image = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.readAsDataURL(fileInput.files[0]);
+      });
+    }
+
+    const next = [...cachedProducts, { name, link, blurb, image }];
+    await saveProducts(next);
+    document.getElementById('new-product-name').value = '';
+    document.getElementById('new-product-link').value = '';
+    document.getElementById('new-product-blurb').value = '';
+    fileInput.value = '';
+  }
+
+  async function deleteProduct(index){
+    if (!confirm('Remove this product?')) return;
+    const next = cachedProducts.filter((_, i) => i !== index);
+    await saveProducts(next);
   }
 
   async function updateProfilePhoto(){
@@ -653,9 +985,19 @@
     reader.readAsDataURL(fileInput.files[0]);
   }
 
+  // ---------- rich text toolbar ----------
+  function formatDoc(cmd, value){
+    document.getElementById('post-content').focus();
+    document.execCommand(cmd, false, value || undefined);
+  }
+
+  let cachedPosts = [];
+  let editingPostId = null;
+
   async function loadPosts(){
     const { data } = await sb.from('posts').select('*').order('created_at', { ascending: false });
-    renderPosts(data || []);
+    cachedPosts = data || [];
+    renderPosts(cachedPosts);
   }
 
   function renderPosts(posts){
@@ -669,23 +1011,42 @@
           : `<img src="${post.media_data}" alt="">`;
       }
       const dateStr = new Date(post.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const ownerActions = isAdmin ? `
+        <div class="post-owner-actions">
+          <button type="button" onclick="editPost('${post.id}')">Edit</button>
+          <button type="button" onclick="deletePost('${post.id}')">Delete</button>
+        </div>
+      ` : '';
       return `
-        <div class="post-card">
+        <div class="post-card" data-post-id="${post.id}">
           ${mediaHTML}
+          ${ownerActions}
           <h3>${post.title}</h3>
           <span class="post-date">${dateStr}</span>
-          <p>${post.content.replace(/\n/g, '<br>')}</p>
+          <div class="post-body">${post.content}</div>
+          <div class="comments" data-post-id="${post.id}">
+            <h4>Comments</h4>
+            <div class="comment-list" id="comments-${post.id}"></div>
+            <form class="comment-form" onsubmit="return submitComment(event, '${post.id}')">
+              <input type="text" class="comment-name" placeholder="Your name" required>
+              <textarea class="comment-text" rows="2" placeholder="Leave a kind word..." required></textarea>
+              <button type="submit">Post comment</button>
+            </form>
+          </div>
         </div>
       `;
     }).join('');
+
+    posts.forEach(post => loadComments(post.id));
   }
 
   async function publishPost(){
-    const title = document.getElementById('post-title').value;
-    const content = document.getElementById('post-content').value;
+    const title = document.getElementById('post-title').value.trim();
+    const editor = document.getElementById('post-content');
+    const content = editor.innerHTML.trim();
     const mediaInput = document.getElementById('post-media');
 
-    if (!title || !content) { alert('Please provide a title and your beautiful thoughts.'); return; }
+    if (!title || !editor.textContent.trim()) { alert('Please provide a title and your beautiful thoughts.'); return; }
 
     let media_data = null, media_type = null;
     if (mediaInput.files && mediaInput.files[0]) {
@@ -696,22 +1057,107 @@
         reader.readAsDataURL(file);
       });
       media_type = file.type.startsWith('video') ? 'video' : 'image';
+    } else if (editingPostId) {
+      // keep the existing media unless a new file was chosen
+      const existing = cachedPosts.find(p => String(p.id) === String(editingPostId));
+      if (existing) { media_data = existing.media_data; media_type = existing.media_type; }
     }
 
-    const { error } = await sb.from('posts').insert({ title, content, media_data, media_type });
-    if (error) { alert('Could not publish — try logging in again.'); return; }
+    let error;
+    if (editingPostId) {
+      ({ error } = await sb.from('posts').update({ title, content, media_data, media_type }).eq('id', editingPostId));
+    } else {
+      ({ error } = await sb.from('posts').insert({ title, content, media_data, media_type }));
+    }
+    if (error) { alert('Could not save — try logging in again.'); return; }
 
-    document.getElementById('post-title').value = '';
-    document.getElementById('post-content').value = '';
+    const wasEditing = !!editingPostId;
+    cancelEditPost();
     document.getElementById('post-media').value = '';
     loadPosts();
-    alert('Your post has been published for everyone to see!');
+    alert(wasEditing ? 'Your post has been updated!' : 'Your post has been published for everyone to see!');
+  }
+
+  function editPost(id){
+    const post = cachedPosts.find(p => String(p.id) === String(id));
+    if (!post) return;
+    editingPostId = id;
+    document.getElementById('post-title').value = post.title;
+    document.getElementById('post-content').innerHTML = post.content;
+    document.getElementById('composer-heading').textContent = 'Edit post';
+    document.getElementById('publish-btn').textContent = 'Update post';
+    document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+    document.getElementById('composer-heading').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function cancelEditPost(){
+    editingPostId = null;
+    document.getElementById('post-title').value = '';
+    document.getElementById('post-content').innerHTML = '';
+    document.getElementById('composer-heading').textContent = 'Compose a new post';
+    document.getElementById('publish-btn').textContent = 'Publish post';
+    document.getElementById('cancel-edit-btn').style.display = 'none';
+  }
+
+  async function deletePost(id){
+    if (!confirm('Delete this post? This cannot be undone.')) return;
+    const { error } = await sb.from('posts').delete().eq('id', id);
+    if (error) { alert('Could not delete — try logging in again.'); return; }
+    loadPosts();
+  }
+
+  // ---------- comments (readers can comment on each post) ----------
+  async function loadComments(postId){
+    const { data } = await sb.from('comments').select('*').eq('post_id', postId).order('created_at', { ascending: true });
+    const list = document.getElementById('comments-' + postId);
+    if (!list) return;
+    const comments = data || [];
+    if (!comments.length) {
+      list.innerHTML = '<p class="comment-empty">Be the first to leave a comment.</p>';
+      return;
+    }
+    list.innerHTML = comments.map(c => {
+      const dateStr = new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const delBtn = isAdmin ? `<button type="button" class="comment-delete" onclick="deleteComment('${c.id}', '${postId}')" title="Delete comment">✕</button>` : '';
+      return `
+        <div class="comment-item">
+          ${delBtn}
+          <span class="comment-name">${c.name}</span><span class="comment-date">${dateStr}</span>
+          <p>${c.comment}</p>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function submitComment(event, postId){
+    event.preventDefault();
+    const form = event.target;
+    const name = form.querySelector('.comment-name').value.trim();
+    const comment = form.querySelector('.comment-text').value.trim();
+    if (!name || !comment) return false;
+    (async () => {
+      const { error } = await sb.from('comments').insert({ post_id: postId, name, comment });
+      if (error) { alert('Could not post your comment just yet — please try again.'); return; }
+      form.reset();
+      loadComments(postId);
+    })();
+    return false;
+  }
+
+  async function deleteComment(id, postId){
+    if (!confirm('Delete this comment?')) return;
+    const { error } = await sb.from('comments').delete().eq('id', id);
+    if (error) { alert('Could not delete — try logging in again.'); return; }
+    loadComments(postId);
   }
 
   // ---------- page load ----------
   window.addEventListener('load', async () => {
     const { data } = await sb.auth.getSession();
-    if (data.session) document.getElementById('admin-panel').style.display = 'block';
+    if (data.session) {
+      document.getElementById('admin-panel').style.display = 'block';
+      isAdmin = true;
+    }
     loadSiteSettings();
     loadPosts();
   });

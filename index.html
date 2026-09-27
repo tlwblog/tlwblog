@@ -436,6 +436,12 @@
   }
   #share-toast.visible{ opacity: 1; transform: translate(-50%, 0); }
 
+  .post-highlight{ animation: postHighlightPulse 2.2s ease; }
+  @keyframes postHighlightPulse{
+    0% { box-shadow: 0 0 0 3px var(--gold); }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+
   .comments{ margin-top: 1.6rem; }
   .comments h4{
     font-family: 'Fraunces', serif; font-size: 1.05rem; color: var(--ink); margin: 0 0 0.8rem;
@@ -1231,6 +1237,22 @@
     renderPosts(cachedPosts);
   }
 
+  // A shared link like #post-42 only means something once that post exists in
+  // the DOM — since posts load from Supabase after the page itself loads, the
+  // browser's automatic "jump to #anchor" fires too early and misses. This
+  // does it manually once rendering is actually done, so opening a shared
+  // link behaves like a real blog permalink: it scrolls straight to that post
+  // and briefly highlights it.
+  function scrollToSharedPost(){
+    const hash = location.hash;
+    if (!hash || !hash.startsWith('#post-')) return;
+    const el = document.querySelector(hash);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el.classList.add('post-highlight');
+    setTimeout(() => el.classList.remove('post-highlight'), 2200);
+  }
+
   // Reads a post's media as an array of {data, type}, whatever format it was saved in
   // (new posts store a JSON array in media_data; older posts store one raw data URL).
   function getPostMediaItems(post){
@@ -1652,7 +1674,8 @@
       isAdmin = true;
     }
     loadSiteSettings();
-    loadPosts();
+    await loadPosts();
+    scrollToSharedPost();
   });
 </script>
 </body>

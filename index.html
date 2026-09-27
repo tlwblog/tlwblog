@@ -546,6 +546,7 @@
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
     Listen alongside me
   </a>
+  <div id="home-share-bar" style="justify-content:center; margin-top:1.2rem;"></div>
 
   <div class="meditation">
     <h3>A moment to breathe</h3>
@@ -567,6 +568,7 @@
   <div class="wrap">
     <h2 class="center">The Wonder Board</h2>
     <p class="kicker center">a little motivation, a little vision, a little of what's coming</p>
+    <div id="board-share-bar" style="justify-content:center; margin:0 0 1.6rem;"></div>
 
     <div class="affirmation">
       <blockquote id="affirmation-text">"Small, steady steps are still steps forward."</blockquote>
@@ -1315,6 +1317,12 @@
   }
 
   function getPostShareData(postId){
+    if (postId === 'home') {
+      return { title: 'to live wonderfully', url: location.origin + '/home' };
+    }
+    if (postId === 'board') {
+      return { title: 'The Wonder Board — to live wonderfully', url: location.origin + '/board' };
+    }
     const post = cachedPosts.find(p => String(p.id) === String(postId));
     const title = post ? post.title.replace(/\s+/g, ' ').trim() : document.title;
     const url = location.origin + '/post/' + postId;
@@ -1690,6 +1698,8 @@
       document.getElementById('admin-panel').style.display = 'block';
       isAdmin = true;
     }
+    document.getElementById('home-share-bar').innerHTML = buildShareBar('home');
+    document.getElementById('board-share-bar').innerHTML = buildShareBar('board');
     loadSiteSettings();
     await loadPosts();
     scrollToSharedPost();

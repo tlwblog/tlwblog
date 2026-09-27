@@ -415,12 +415,26 @@
   .share-icon{
     width: 34px; height: 34px; padding: 0; border: none; border-radius: 50%;
     display: inline-flex; align-items: center; justify-content: center;
-    color: #fff; font-family: 'Jost', sans-serif; font-weight: 500; font-size: 0.82rem;
+    background: var(--rose-deep); color: #fff;
     line-height: 1; cursor: pointer; flex: none;
-    transition: transform 0.15s ease, opacity 0.15s ease;
+    transition: background 0.15s ease, transform 0.15s ease;
   }
-  .share-icon:hover{ transform: translateY(-2px); opacity: 0.85; }
+  .share-icon:hover{ background: var(--gold); transform: translateY(-2px); }
+  .share-icon:nth-child(3n+2){ background: var(--rose); }
+  .share-icon:nth-child(3n+2):hover{ background: var(--gold); }
   .share-icon svg{ width: 16px; height: 16px; fill: currentColor; }
+
+  #share-toast{
+    position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 14px);
+    max-width: 90vw; padding: 0.65rem 1.2rem; border-radius: 999px;
+    background: var(--rose-deep); color: #fff;
+    font-family: 'Jost', sans-serif; font-size: 0.82rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    box-shadow: 0 12px 26px -10px rgba(74,59,63,0.5);
+    opacity: 0; pointer-events: none; z-index: 999;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  #share-toast.visible{ opacity: 1; transform: translate(-50%, 0); }
 
   .comments{ margin-top: 1.6rem; }
   .comments h4{
@@ -1229,35 +1243,36 @@
   }
 
   // ---------- social sharing (icon-only share bar on every post) ----------
-  // Icons are simple inline-SVG glyphs on a brand-colored circle so no external
-  // icon library or network request is needed.
+  // Icons are simple inline-SVG glyphs on a circle styled with the site's own
+  // rose/gold palette (see .share-icon in the CSS) — no external icon library
+  // or network request is needed.
   const SHARE_PLATFORMS = [
-    { id: 'facebook',  label: 'Facebook',  color: '#1877F2', svg: '<path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12z"/>' },
-    { id: 'youtube',   label: 'YouTube',   color: '#FF0000', svg: '<path d="M21.6 7.2s-.21-1.48-.86-2.14c-.82-.86-1.74-.86-2.16-.91C15.6 4 12 4 12 4h-.01s-3.59 0-6.57.15c-.42.05-1.34.05-2.16.91-.65.66-.86 2.14-.86 2.14S2.2 8.93 2.2 10.67v1.62c0 1.74.2 3.47.2 3.47s.21 1.48.86 2.14c.82.86 1.9.83 2.38.92 1.73.17 7.36.22 7.36.22s3.6 0 6.58-.16c.42-.05 1.34-.05 2.16-.91.65-.66.86-2.14.86-2.14s.2-1.73.2-3.47v-1.62c0-1.74-.2-3.47-.2-3.47zM9.96 14.98V8.98l5.75 3-5.75 3z"/>' },
-    { id: 'whatsapp',  label: 'WhatsApp',  color: '#25D366', svg: '<path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.05-1.36A10 10 0 1 0 12 2zm0 18.2a8.15 8.15 0 0 1-4.16-1.14l-.3-.18-3.09.83.83-3-.2-.31A8.2 8.2 0 1 1 12 20.2zm4.5-6.13c-.24-.12-1.43-.7-1.65-.79-.22-.08-.38-.12-.55.12-.16.24-.63.79-.77.95-.14.16-.28.18-.53.06-.24-.12-1.02-.38-1.94-1.2-.72-.64-1.2-1.44-1.35-1.68-.14-.24-.02-.37.11-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.55-1.34-.76-1.83-.2-.48-.4-.42-.55-.42h-.47c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.7 2.6 4.12 3.64.58.25 1.03.4 1.38.51.58.18 1.11.16 1.53.1.47-.07 1.43-.58 1.63-1.15.2-.56.2-1.05.14-1.15-.06-.1-.22-.16-.46-.28z"/>' },
-    { id: 'instagram', label: 'Instagram', color: '#E1306C', svg: '<path d="M12 2c-2.72 0-3.06.01-4.12.06-1.06.05-1.79.22-2.43.47-.66.26-1.22.6-1.77 1.16-.56.55-.9 1.11-1.16 1.77-.25.64-.42 1.37-.47 2.43C2 8.94 2 9.28 2 12s.01 3.06.06 4.12c.05 1.06.22 1.79.47 2.43.26.66.6 1.22 1.16 1.77.55.56 1.11.9 1.77 1.16.64.25 1.37.42 2.43.47C8.94 22 9.28 22 12 22s3.06-.01 4.12-.06c1.06-.05 1.79-.22 2.43-.47.66-.26 1.22-.6 1.77-1.16.56-.55.9-1.11 1.16-1.77.25-.64.42-1.37.47-2.43.05-1.06.06-1.4.06-4.12s-.01-3.06-.06-4.12c-.05-1.06-.22-1.79-.47-2.43-.26-.66-.6-1.22-1.16-1.77-.55-.56-1.11-.9-1.77-1.16-.64-.25-1.37-.42-2.43-.47C15.06 2 14.72 2 12 2zm0 1.8c2.67 0 2.99.01 4.04.06.98.04 1.5.21 1.86.34.47.18.8.4 1.15.75.35.35.57.68.75 1.15.13.36.3.88.34 1.86.05 1.05.06 1.37.06 4.04s-.01 2.99-.06 4.04c-.04.98-.21 1.5-.34 1.86-.18.47-.4.8-.75 1.15-.35.35-.68.57-1.15.75-.36.13-.88.3-1.86.34-1.05.05-1.37.06-4.04.06s-2.99-.01-4.04-.06c-.98-.04-1.5-.21-1.86-.34-.47-.18-.8-.4-1.15-.75-.35-.35-.57-.68-.75-1.15-.13-.36-.3-.88-.34-1.86C3.81 14.99 3.8 14.67 3.8 12s.01-2.99.06-4.04c.04-.98.21-1.5.34-1.86.18-.47.4-.8.75-1.15.35-.35.68-.57 1.15-.75.36-.13.88-.3 1.86-.34C9.01 3.81 9.33 3.8 12 3.8zm0 3.05a5.15 5.15 0 1 0 0 10.3 5.15 5.15 0 0 0 0-10.3zm0 8.5a3.35 3.35 0 1 1 0-6.7 3.35 3.35 0 0 1 0 6.7zm5.35-8.7a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0z"/>' },
-    { id: 'tiktok',    label: 'TikTok',    color: '#010101', svg: '<path d="M16.7 2h-3.4v13.6a2.5 2.5 0 1 1-2.5-2.6c.2 0 .4 0 .6.05V9.6a5.9 5.9 0 1 0 5.3 5.9V8.4a7.8 7.8 0 0 0 4.4 1.35V6.3a4.5 4.5 0 0 1-4.4-4.3z"/>' },
-    { id: 'wechat',    label: 'WeChat',    color: '#07C160', svg: '<path d="M9.6 4C5.4 4 2 6.9 2 10.4c0 2 .98 3.7 2.6 4.9l-.65 1.98 2.2-1.1c.6.16 1.24.27 1.9.3-.1-.4-.16-.82-.16-1.25 0-3.5 3.3-6.3 7.4-6.3.28 0 .55.02.82.05C15.6 5.9 12.9 4 9.6 4zm-2.5 3.4a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm5 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2zM16.2 9.9c-3.5 0-6.2 2.4-6.2 5.4s2.7 5.4 6.2 5.4c.7 0 1.4-.1 2-.3l1.9.95-.55-1.7C21 18.6 22 17.15 22 15.3c0-3-2.7-5.4-6.2-5.4zm-1.9 3a.85.85 0 1 1 0 1.7.85.85 0 0 1 0-1.7zm3.9 0a.85.85 0 1 1 0 1.7.85.85 0 0 1 0-1.7z"/>' },
-    { id: 'messenger', label: 'Messenger', color: '#00B2FF', svg: '<path d="M12 2C6.5 2 2 6.2 2 11.4c0 2.9 1.4 5.5 3.6 7.2V22l3.3-1.8c.9.25 1.9.4 2.9.4 5.5 0 10-4.2 10-9.4S17.5 2 12 2zm1.02 12.6-2.55-2.72-4.98 2.72 5.48-5.8 2.6 2.72 4.93-2.72-5.48 5.8z"/>' },
-    { id: 'telegram',  label: 'Telegram',  color: '#26A5E4', svg: '<path d="M21.9 4.3 2.9 11.6c-1.3.5-1.3 1.2-.2 1.5l4.9 1.5 1.9 5.8c.2.6.4.8.8.8.4 0 .6-.2.8-.4l2.2-2.1 4.6 3.4c.8.5 1.4.2 1.6-.7l3-14c.3-1.1-.4-1.6-1.4-1.1zM8.7 14.3l9-5.6c.4-.3.8-.1.5.2l-7.5 6.8-.3 3.1z"/>' },
-    { id: 'snapchat',  label: 'Snapchat',  color: '#FFFC00', dark: true, svg: '<path d="M12 2c2.9 0 4.6 2.1 4.7 4.6l.1 2.1c.4.2.9.2 1.4.1.4-.1.9.1 1 .5.1.4-.1.8-.5 1-.3.1-.6.3-.6.6-.1.5.7 1 1.3 1.3.3.1.6.5.4.9-.4.9-1.7 1.1-2.5 1.3-.2.4-.3.9-.5 1.3-.1.2-.4.3-.7.2-.6-.1-1.2-.2-1.8 0-.7.3-1.2.9-2.3.9s-1.6-.6-2.3-.9c-.6-.2-1.2-.1-1.8 0-.3.1-.6 0-.7-.2-.2-.4-.3-.9-.5-1.3-.8-.2-2.1-.4-2.5-1.3-.2-.4.1-.8.4-.9.6-.3 1.4-.8 1.3-1.3 0-.3-.3-.5-.6-.6-.4-.2-.6-.6-.5-1 .1-.4.6-.6 1-.5.5.1 1 .1 1.4-.1l.1-2.1C7.4 4.1 9.1 2 12 2z"/>' },
-    { id: 'reddit',    label: 'Reddit',    color: '#FF4500', svg: '<path d="M22 12.3c0-1.1-.9-2-2-2-.5 0-1 .2-1.3.5-1.3-.9-3-1.5-4.9-1.6l.9-3.8 2.9.7c0 .8.6 1.4 1.4 1.4.8 0 1.4-.6 1.4-1.4s-.6-1.4-1.4-1.4c-.5 0-1 .3-1.2.7l-3.2-.7c-.2 0-.3.1-.4.3l-1 4.2c-1.9.1-3.6.7-4.9 1.6-.3-.3-.8-.5-1.3-.5-1.1 0-2 .9-2 2 0 .8.5 1.5 1.1 1.8-.1.3-.1.6-.1.9 0 2.7 3.1 4.9 6.9 4.9s6.9-2.2 6.9-4.9c0-.3 0-.6-.1-.9.7-.3 1.2-1 1.2-1.8zM8.2 13.4a1.3 1.3 0 1 1 2.6 0 1.3 1.3 0 0 1-2.6 0zm6.8 3.3c-.7.7-1.8 1-3 1s-2.3-.3-3-1c-.1-.1-.1-.3 0-.5.1-.1.3-.1.5 0 .6.5 1.5.8 2.5.8s1.9-.3 2.5-.8c.1-.1.3-.1.5 0 .1.2.1.4 0 .5zm-.2-2a1.3 1.3 0 1 1 0-2.6 1.3 1.3 0 0 1 0 2.6z"/>' },
-    { id: 'x',         label: 'X',         color: '#000000', svg: '<path d="M13.9 10.6 21 2.5h-1.8l-6.2 7-5-7H2l7.4 10.4L2 21h1.8l6.5-7.4L15.6 21H22zM4.6 3.9h2.6l12.1 15.6h-2.5z"/>' },
-    { id: 'pinterest', label: 'Pinterest', color: '#E60023', svg: '<path d="M12 2a10 10 0 0 0-3.6 19.3c0-.8 0-1.7.2-2.5l1.4-6s-.4-.7-.4-1.8c0-1.7.9-2.9 2.1-2.9 1 0 1.5.7 1.5 1.6 0 1-.6 2.4-.9 3.8-.3 1.1.6 2 1.7 2 2 0 3.6-2.1 3.6-5.2 0-2.7-2-4.6-4.8-4.6-3.3 0-5.2 2.4-5.2 4.9 0 1 .4 2 .8 2.6.1.1.1.2.1.3l-.3 1.2c-.1.2-.2.3-.4.2-1.4-.6-2.2-2.5-2.2-4.1 0-3.3 2.4-6.4 7-6.4 3.7 0 6.5 2.6 6.5 6.1 0 3.6-2.3 6.6-5.5 6.6-1.1 0-2.1-.6-2.4-1.2l-.7 2.5c-.2.9-.9 2.1-1.4 2.8A10 10 0 1 0 12 2z"/>' },
-    { id: 'linkedin',  label: 'LinkedIn',  color: '#0A66C2', svg: '<path d="M6.94 5a2 2 0 1 1-4-.01 2 2 0 0 1 4 .01zM7 8.5H3V21h4zm6.4 0H9.6V21h3.9v-6.4c0-1.7.32-3.4 2.44-3.4 2.1 0 2.13 1.96 2.13 3.5V21H22v-6.9c0-3.8-.8-6.7-5.2-6.7-2.1 0-3.5 1.15-4.1 2.24z"/>' },
-    { id: 'discord',   label: 'Discord',   color: '#5865F2', svg: '<path d="M19.3 5.3A16.7 16.7 0 0 0 15.2 4l-.2.4c1.5.4 2.9 1 4.2 1.9-2.3-1.1-4.6-1.6-6.9-1.6s-4.6.5-6.9 1.6c1.3-.9 2.6-1.5 4.1-1.9L9.3 4a16.7 16.7 0 0 0-4.1 1.3C2.6 9 1.9 12.6 2.2 16.1a17 17 0 0 0 5.1 2.6l.7-1.1c-.8-.3-1.5-.6-2.2-1.1l.4-.3c2.1 1 4.4 1.5 6.8 1.5s4.7-.5 6.8-1.5l.4.3c-.7.4-1.4.8-2.2 1.1l.7 1.1c1.9-.6 3.7-1.5 5.1-2.6.4-4-.6-7.6-3.5-10.8zM9.7 14.3c-.9 0-1.6-.9-1.6-1.9s.7-1.9 1.6-1.9 1.6.9 1.6 1.9-.7 1.9-1.6 1.9zm5.6 0c-.9 0-1.6-.9-1.6-1.9s.7-1.9 1.6-1.9 1.6.9 1.6 1.9-.7 1.9-1.6 1.9z"/>' },
-    { id: 'douyin',    label: 'Douyin',    color: '#010101', svg: '<path d="M16.7 2h-3.4v13.6a2.5 2.5 0 1 1-2.5-2.6c.2 0 .4 0 .6.05V9.6a5.9 5.9 0 1 0 5.3 5.9V8.4a7.8 7.8 0 0 0 4.4 1.35V6.3a4.5 4.5 0 0 1-4.4-4.3z"/>' },
-    { id: 'qq',        label: 'QQ',        color: '#12B7F5', svg: '<path d="M12 2C7.6 2 5 5.2 5 9.6c0 1.5.2 2.8.5 3.9-.6.9-1.5 2.6-1.3 3.6.1.5.5.4.8.1.3-.3.9-1.1 1.2-1.6.3 1 1.4 3 3.9 3.5-.2.3-.6 1-.4 1.3.3.5 2.6.3 3.3 0 .7.3 3 .5 3.3 0 .2-.3-.2-1-.4-1.3 2.5-.5 3.6-2.5 3.9-3.5.3.5.9 1.3 1.2 1.6.3.3.7.4.8-.1.2-1-.7-2.7-1.3-3.6.3-1.1.5-2.4.5-3.9C19 5.2 16.4 2 12 2z"/>' },
-    { id: 'qzone',     label: 'Qzone',     color: '#FECE00', dark: true, svg: '<path d="M12 2 2 8.5 12 15l10-6.5zm-8.2 8L12 15.5 20.2 10 20.2 15 12 20.3 3.8 15z"/>' },
-    { id: 'weibo',     label: 'Weibo',     color: '#E6162D', svg: '<path d="M9.8 21.5c-4.6 0-8.3-2.2-8.3-5.4 0-1.7 1-3.6 2.7-5.3 2.2-2.3 4.9-3.3 6-2.2.5.5.5 1.3.1 2.2-.1.3.1.4.3.3 2.4-1 4.5-.4 5.1 1.3.3.9 0 1.9-.7 2.9 1.1.4 1.8 1.1 1.8 2 0 2.2-3.4 4.2-7 4.2zm-.3-1.7c2.5 0 4.6-1.2 4.6-2.5 0-1-1.2-1.6-2.4-1.6-.3 0-.5 0-.4-.3.2-.5.2-1-.1-1.3-.6-.6-2.2-.1-3.5 1.1-1.5 1.4-1.8 2.9-.9 3.7.6.6 1.7.9 2.7.9zM17 7.2c-.8 0-1.6.3-2.1.7-.2.1-.1.4.1.4 1.4-.2 2.6.4 2.9 1.5.1.3.3.3.4.1.2-.5.3-1 .1-1.6-.3-.7-.8-1.1-1.4-1.1zm2.8-2.4c-1.5-1.6-3.9-2.1-6-1.4-.3.1-.4.4-.2.6.1.2.4.2.6.1 1.7-.6 3.6-.2 4.8 1.1 1.2 1.3 1.4 3.1.7 4.6-.1.2 0 .5.2.6.2.1.5 0 .6-.2.9-1.9.6-4.1-.7-5.4z"/>' },
-    { id: 'kuaishou',  label: 'Kuaishou',  color: '#FE3666', svg: '<path d="M12 2 2.5 8v8L12 22l9.5-6V8zM9 9h2v4H9zm4 0h2v4h-2z"/>' },
-    { id: 'threads',   label: 'Threads',   color: '#000000', svg: '<path d="M12 2C6.9 2 3 5.6 3 12s3.9 10 9 10c3.7 0 6.4-1.6 8-4.4l-2-1.1c-1.2 2-3 3-5.9 3-3.4 0-5.7-1.9-6.2-5 .8.2 2.3.4 3.9.4 3.6 0 6.6-1.3 6.6-4.2 0-2.4-2-3.9-5-3.9-2.8 0-4.9 1.2-5.9 3.1l1.9 1.1c.7-1.3 2-2 3.8-2 1.5 0 2.6.6 2.6 1.6 0 1.2-1.6 1.9-4.1 1.9-1.2 0-2.4-.1-3.3-.4.3-4 3-6.6 6.6-6.6 3.9 0 6.4 2.4 7 6 .1.6.1 1.3.1 2 0 5.6-3.4 8.5-7.1 8.5z"/>' },
-    { id: 'mastodon',  label: 'Mastodon',  color: '#6364FF', svg: '<path d="M21.3 7.2c0-3.7-2.4-4.8-2.4-4.8C17.6 1.8 15.3 1.5 12.9 1.5h-.1c-2.4 0-4.7.3-6 .9 0 0-2.4 1.1-2.4 4.8 0 .8-.1 1.9-.1 3 0 4.8.3 9.7 4.7 10.9 1.8.5 3.3.6 4.6.5 2.2-.1 3.5-.7 3.5-.7l-.1-1.6s-1.6.5-3.4.5c-1.8-.1-3.7-.2-4-2.4a4 4 0 0 1 0-.7c3.8.9 7 .4 7.9.3 2.5-.3 4.6-1.9 4.9-3.4.4-2 .4-4.9.4-4.9zm-3.2 5.2h-2v-4.1c0-.9-.4-1.3-1.1-1.3-.8 0-1.2.5-1.2 1.5v2.3h-2v-2.3c0-1-.4-1.5-1.2-1.5-.7 0-1.1.4-1.1 1.3v4.1h-2V8.1c0-.9.2-1.6.7-2.2.5-.5 1.1-.8 1.9-.8.9 0 1.6.4 2.1 1.1l.4.8.4-.8c.5-.7 1.2-1.1 2.1-1.1.8 0 1.4.3 1.9.8.5.6.7 1.3.7 2.2z"/>' }
+    { id: 'facebook',  label: 'Facebook',  svg: '<path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12z"/>' },
+    { id: 'youtube',   label: 'YouTube',   svg: '<path d="M21.6 7.2s-.21-1.48-.86-2.14c-.82-.86-1.74-.86-2.16-.91C15.6 4 12 4 12 4h-.01s-3.59 0-6.57.15c-.42.05-1.34.05-2.16.91-.65.66-.86 2.14-.86 2.14S2.2 8.93 2.2 10.67v1.62c0 1.74.2 3.47.2 3.47s.21 1.48.86 2.14c.82.86 1.9.83 2.38.92 1.73.17 7.36.22 7.36.22s3.6 0 6.58-.16c.42-.05 1.34-.05 2.16-.91.65-.66.86-2.14.86-2.14s.2-1.73.2-3.47v-1.62c0-1.74-.2-3.47-.2-3.47zM9.96 14.98V8.98l5.75 3-5.75 3z"/>' },
+    { id: 'whatsapp',  label: 'WhatsApp',  svg: '<path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.05-1.36A10 10 0 1 0 12 2zm0 18.2a8.15 8.15 0 0 1-4.16-1.14l-.3-.18-3.09.83.83-3-.2-.31A8.2 8.2 0 1 1 12 20.2zm4.5-6.13c-.24-.12-1.43-.7-1.65-.79-.22-.08-.38-.12-.55.12-.16.24-.63.79-.77.95-.14.16-.28.18-.53.06-.24-.12-1.02-.38-1.94-1.2-.72-.64-1.2-1.44-1.35-1.68-.14-.24-.02-.37.11-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.55-1.34-.76-1.83-.2-.48-.4-.42-.55-.42h-.47c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.7 2.6 4.12 3.64.58.25 1.03.4 1.38.51.58.18 1.11.16 1.53.1.47-.07 1.43-.58 1.63-1.15.2-.56.2-1.05.14-1.15-.06-.1-.22-.16-.46-.28z"/>' },
+    { id: 'instagram', label: 'Instagram', svg: '<path d="M12 2c-2.72 0-3.06.01-4.12.06-1.06.05-1.79.22-2.43.47-.66.26-1.22.6-1.77 1.16-.56.55-.9 1.11-1.16 1.77-.25.64-.42 1.37-.47 2.43C2 8.94 2 9.28 2 12s.01 3.06.06 4.12c.05 1.06.22 1.79.47 2.43.26.66.6 1.22 1.16 1.77.55.56 1.11.9 1.77 1.16.64.25 1.37.42 2.43.47C8.94 22 9.28 22 12 22s3.06-.01 4.12-.06c1.06-.05 1.79-.22 2.43-.47.66-.26 1.22-.6 1.77-1.16.56-.55.9-1.11 1.16-1.77.25-.64.42-1.37.47-2.43.05-1.06.06-1.4.06-4.12s-.01-3.06-.06-4.12c-.05-1.06-.22-1.79-.47-2.43-.26-.66-.6-1.22-1.16-1.77-.55-.56-1.11-.9-1.77-1.16-.64-.25-1.37-.42-2.43-.47C15.06 2 14.72 2 12 2zm0 1.8c2.67 0 2.99.01 4.04.06.98.04 1.5.21 1.86.34.47.18.8.4 1.15.75.35.35.57.68.75 1.15.13.36.3.88.34 1.86.05 1.05.06 1.37.06 4.04s-.01 2.99-.06 4.04c-.04.98-.21 1.5-.34 1.86-.18.47-.4.8-.75 1.15-.35.35-.68.57-1.15.75-.36.13-.88.3-1.86.34-1.05.05-1.37.06-4.04.06s-2.99-.01-4.04-.06c-.98-.04-1.5-.21-1.86-.34-.47-.18-.8-.4-1.15-.75-.35-.35-.57-.68-.75-1.15-.13-.36-.3-.88-.34-1.86C3.81 14.99 3.8 14.67 3.8 12s.01-2.99.06-4.04c.04-.98.21-1.5.34-1.86.18-.47.4-.8.75-1.15.35-.35.68-.57 1.15-.75.36-.13.88-.3 1.86-.34C9.01 3.81 9.33 3.8 12 3.8zm0 3.05a5.15 5.15 0 1 0 0 10.3 5.15 5.15 0 0 0 0-10.3zm0 8.5a3.35 3.35 0 1 1 0-6.7 3.35 3.35 0 0 1 0 6.7zm5.35-8.7a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0z"/>' },
+    { id: 'tiktok',    label: 'TikTok',    svg: '<path d="M16.7 2h-3.4v13.6a2.5 2.5 0 1 1-2.5-2.6c.2 0 .4 0 .6.05V9.6a5.9 5.9 0 1 0 5.3 5.9V8.4a7.8 7.8 0 0 0 4.4 1.35V6.3a4.5 4.5 0 0 1-4.4-4.3z"/>' },
+    { id: 'wechat',    label: 'WeChat',    svg: '<path d="M9.6 4C5.4 4 2 6.9 2 10.4c0 2 .98 3.7 2.6 4.9l-.65 1.98 2.2-1.1c.6.16 1.24.27 1.9.3-.1-.4-.16-.82-.16-1.25 0-3.5 3.3-6.3 7.4-6.3.28 0 .55.02.82.05C15.6 5.9 12.9 4 9.6 4zm-2.5 3.4a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm5 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2zM16.2 9.9c-3.5 0-6.2 2.4-6.2 5.4s2.7 5.4 6.2 5.4c.7 0 1.4-.1 2-.3l1.9.95-.55-1.7C21 18.6 22 17.15 22 15.3c0-3-2.7-5.4-6.2-5.4zm-1.9 3a.85.85 0 1 1 0 1.7.85.85 0 0 1 0-1.7zm3.9 0a.85.85 0 1 1 0 1.7.85.85 0 0 1 0-1.7z"/>' },
+    { id: 'messenger', label: 'Messenger', svg: '<path d="M12 2C6.5 2 2 6.2 2 11.4c0 2.9 1.4 5.5 3.6 7.2V22l3.3-1.8c.9.25 1.9.4 2.9.4 5.5 0 10-4.2 10-9.4S17.5 2 12 2zm1.02 12.6-2.55-2.72-4.98 2.72 5.48-5.8 2.6 2.72 4.93-2.72-5.48 5.8z"/>' },
+    { id: 'telegram',  label: 'Telegram',  svg: '<path d="M21.9 4.3 2.9 11.6c-1.3.5-1.3 1.2-.2 1.5l4.9 1.5 1.9 5.8c.2.6.4.8.8.8.4 0 .6-.2.8-.4l2.2-2.1 4.6 3.4c.8.5 1.4.2 1.6-.7l3-14c.3-1.1-.4-1.6-1.4-1.1zM8.7 14.3l9-5.6c.4-.3.8-.1.5.2l-7.5 6.8-.3 3.1z"/>' },
+    { id: 'snapchat',  label: 'Snapchat',  svg: '<path d="M12 2c2.9 0 4.6 2.1 4.7 4.6l.1 2.1c.4.2.9.2 1.4.1.4-.1.9.1 1 .5.1.4-.1.8-.5 1-.3.1-.6.3-.6.6-.1.5.7 1 1.3 1.3.3.1.6.5.4.9-.4.9-1.7 1.1-2.5 1.3-.2.4-.3.9-.5 1.3-.1.2-.4.3-.7.2-.6-.1-1.2-.2-1.8 0-.7.3-1.2.9-2.3.9s-1.6-.6-2.3-.9c-.6-.2-1.2-.1-1.8 0-.3.1-.6 0-.7-.2-.2-.4-.3-.9-.5-1.3-.8-.2-2.1-.4-2.5-1.3-.2-.4.1-.8.4-.9.6-.3 1.4-.8 1.3-1.3 0-.3-.3-.5-.6-.6-.4-.2-.6-.6-.5-1 .1-.4.6-.6 1-.5.5.1 1 .1 1.4-.1l.1-2.1C7.4 4.1 9.1 2 12 2z"/>' },
+    { id: 'reddit',    label: 'Reddit',    svg: '<path d="M22 12.3c0-1.1-.9-2-2-2-.5 0-1 .2-1.3.5-1.3-.9-3-1.5-4.9-1.6l.9-3.8 2.9.7c0 .8.6 1.4 1.4 1.4.8 0 1.4-.6 1.4-1.4s-.6-1.4-1.4-1.4c-.5 0-1 .3-1.2.7l-3.2-.7c-.2 0-.3.1-.4.3l-1 4.2c-1.9.1-3.6.7-4.9 1.6-.3-.3-.8-.5-1.3-.5-1.1 0-2 .9-2 2 0 .8.5 1.5 1.1 1.8-.1.3-.1.6-.1.9 0 2.7 3.1 4.9 6.9 4.9s6.9-2.2 6.9-4.9c0-.3 0-.6-.1-.9.7-.3 1.2-1 1.2-1.8zM8.2 13.4a1.3 1.3 0 1 1 2.6 0 1.3 1.3 0 0 1-2.6 0zm6.8 3.3c-.7.7-1.8 1-3 1s-2.3-.3-3-1c-.1-.1-.1-.3 0-.5.1-.1.3-.1.5 0 .6.5 1.5.8 2.5.8s1.9-.3 2.5-.8c.1-.1.3-.1.5 0 .1.2.1.4 0 .5zm-.2-2a1.3 1.3 0 1 1 0-2.6 1.3 1.3 0 0 1 0 2.6z"/>' },
+    { id: 'x',         label: 'X',         svg: '<path d="M13.9 10.6 21 2.5h-1.8l-6.2 7-5-7H2l7.4 10.4L2 21h1.8l6.5-7.4L15.6 21H22zM4.6 3.9h2.6l12.1 15.6h-2.5z"/>' },
+    { id: 'pinterest', label: 'Pinterest', svg: '<path d="M12 2a10 10 0 0 0-3.6 19.3c0-.8 0-1.7.2-2.5l1.4-6s-.4-.7-.4-1.8c0-1.7.9-2.9 2.1-2.9 1 0 1.5.7 1.5 1.6 0 1-.6 2.4-.9 3.8-.3 1.1.6 2 1.7 2 2 0 3.6-2.1 3.6-5.2 0-2.7-2-4.6-4.8-4.6-3.3 0-5.2 2.4-5.2 4.9 0 1 .4 2 .8 2.6.1.1.1.2.1.3l-.3 1.2c-.1.2-.2.3-.4.2-1.4-.6-2.2-2.5-2.2-4.1 0-3.3 2.4-6.4 7-6.4 3.7 0 6.5 2.6 6.5 6.1 0 3.6-2.3 6.6-5.5 6.6-1.1 0-2.1-.6-2.4-1.2l-.7 2.5c-.2.9-.9 2.1-1.4 2.8A10 10 0 1 0 12 2z"/>' },
+    { id: 'linkedin',  label: 'LinkedIn',  svg: '<path d="M6.94 5a2 2 0 1 1-4-.01 2 2 0 0 1 4 .01zM7 8.5H3V21h4zm6.4 0H9.6V21h3.9v-6.4c0-1.7.32-3.4 2.44-3.4 2.1 0 2.13 1.96 2.13 3.5V21H22v-6.9c0-3.8-.8-6.7-5.2-6.7-2.1 0-3.5 1.15-4.1 2.24z"/>' },
+    { id: 'discord',   label: 'Discord',   svg: '<path d="M19.3 5.3A16.7 16.7 0 0 0 15.2 4l-.2.4c1.5.4 2.9 1 4.2 1.9-2.3-1.1-4.6-1.6-6.9-1.6s-4.6.5-6.9 1.6c1.3-.9 2.6-1.5 4.1-1.9L9.3 4a16.7 16.7 0 0 0-4.1 1.3C2.6 9 1.9 12.6 2.2 16.1a17 17 0 0 0 5.1 2.6l.7-1.1c-.8-.3-1.5-.6-2.2-1.1l.4-.3c2.1 1 4.4 1.5 6.8 1.5s4.7-.5 6.8-1.5l.4.3c-.7.4-1.4.8-2.2 1.1l.7 1.1c1.9-.6 3.7-1.5 5.1-2.6.4-4-.6-7.6-3.5-10.8zM9.7 14.3c-.9 0-1.6-.9-1.6-1.9s.7-1.9 1.6-1.9 1.6.9 1.6 1.9-.7 1.9-1.6 1.9zm5.6 0c-.9 0-1.6-.9-1.6-1.9s.7-1.9 1.6-1.9 1.6.9 1.6 1.9-.7 1.9-1.6 1.9z"/>' },
+    { id: 'douyin',    label: 'Douyin',    svg: '<path d="M16.7 2h-3.4v13.6a2.5 2.5 0 1 1-2.5-2.6c.2 0 .4 0 .6.05V9.6a5.9 5.9 0 1 0 5.3 5.9V8.4a7.8 7.8 0 0 0 4.4 1.35V6.3a4.5 4.5 0 0 1-4.4-4.3z"/>' },
+    { id: 'qq',        label: 'QQ',        svg: '<path d="M12 2C7.6 2 5 5.2 5 9.6c0 1.5.2 2.8.5 3.9-.6.9-1.5 2.6-1.3 3.6.1.5.5.4.8.1.3-.3.9-1.1 1.2-1.6.3 1 1.4 3 3.9 3.5-.2.3-.6 1-.4 1.3.3.5 2.6.3 3.3 0 .7.3 3 .5 3.3 0 .2-.3-.2-1-.4-1.3 2.5-.5 3.6-2.5 3.9-3.5.3.5.9 1.3 1.2 1.6.3.3.7.4.8-.1.2-1-.7-2.7-1.3-3.6.3-1.1.5-2.4.5-3.9C19 5.2 16.4 2 12 2z"/>' },
+    { id: 'qzone',     label: 'Qzone',     svg: '<path d="M12 2 2 8.5 12 15l10-6.5zm-8.2 8L12 15.5 20.2 10 20.2 15 12 20.3 3.8 15z"/>' },
+    { id: 'weibo',     label: 'Weibo',     svg: '<path d="M9.8 21.5c-4.6 0-8.3-2.2-8.3-5.4 0-1.7 1-3.6 2.7-5.3 2.2-2.3 4.9-3.3 6-2.2.5.5.5 1.3.1 2.2-.1.3.1.4.3.3 2.4-1 4.5-.4 5.1 1.3.3.9 0 1.9-.7 2.9 1.1.4 1.8 1.1 1.8 2 0 2.2-3.4 4.2-7 4.2zm-.3-1.7c2.5 0 4.6-1.2 4.6-2.5 0-1-1.2-1.6-2.4-1.6-.3 0-.5 0-.4-.3.2-.5.2-1-.1-1.3-.6-.6-2.2-.1-3.5 1.1-1.5 1.4-1.8 2.9-.9 3.7.6.6 1.7.9 2.7.9zM17 7.2c-.8 0-1.6.3-2.1.7-.2.1-.1.4.1.4 1.4-.2 2.6.4 2.9 1.5.1.3.3.3.4.1.2-.5.3-1 .1-1.6-.3-.7-.8-1.1-1.4-1.1zm2.8-2.4c-1.5-1.6-3.9-2.1-6-1.4-.3.1-.4.4-.2.6.1.2.4.2.6.1 1.7-.6 3.6-.2 4.8 1.1 1.2 1.3 1.4 3.1.7 4.6-.1.2 0 .5.2.6.2.1.5 0 .6-.2.9-1.9.6-4.1-.7-5.4z"/>' },
+    { id: 'kuaishou',  label: 'Kuaishou',  svg: '<path d="M12 2 2.5 8v8L12 22l9.5-6V8zM9 9h2v4H9zm4 0h2v4h-2z"/>' },
+    { id: 'threads',   label: 'Threads',   svg: '<path d="M12 2C6.9 2 3 5.6 3 12s3.9 10 9 10c3.7 0 6.4-1.6 8-4.4l-2-1.1c-1.2 2-3 3-5.9 3-3.4 0-5.7-1.9-6.2-5 .8.2 2.3.4 3.9.4 3.6 0 6.6-1.3 6.6-4.2 0-2.4-2-3.9-5-3.9-2.8 0-4.9 1.2-5.9 3.1l1.9 1.1c.7-1.3 2-2 3.8-2 1.5 0 2.6.6 2.6 1.6 0 1.2-1.6 1.9-4.1 1.9-1.2 0-2.4-.1-3.3-.4.3-4 3-6.6 6.6-6.6 3.9 0 6.4 2.4 7 6 .1.6.1 1.3.1 2 0 5.6-3.4 8.5-7.1 8.5z"/>' },
+    { id: 'mastodon',  label: 'Mastodon',  svg: '<path d="M21.3 7.2c0-3.7-2.4-4.8-2.4-4.8C17.6 1.8 15.3 1.5 12.9 1.5h-.1c-2.4 0-4.7.3-6 .9 0 0-2.4 1.1-2.4 4.8 0 .8-.1 1.9-.1 3 0 4.8.3 9.7 4.7 10.9 1.8.5 3.3.6 4.6.5 2.2-.1 3.5-.7 3.5-.7l-.1-1.6s-1.6.5-3.4.5c-1.8-.1-3.7-.2-4-2.4a4 4 0 0 1 0-.7c3.8.9 7 .4 7.9.3 2.5-.3 4.6-1.9 4.9-3.4.4-2 .4-4.9.4-4.9zm-3.2 5.2h-2v-4.1c0-.9-.4-1.3-1.1-1.3-.8 0-1.2.5-1.2 1.5v2.3h-2v-2.3c0-1-.4-1.5-1.2-1.5-.7 0-1.1.4-1.1 1.3v4.1h-2V8.1c0-.9.2-1.6.7-2.2.5-.5 1.1-.8 1.9-.8.9 0 1.6.4 2.1 1.1l.4.8.4-.8c.5-.7 1.2-1.1 2.1-1.1.8 0 1.4.3 1.9.8.5.6.7 1.3.7 2.2z"/>' }
   ];
 
   function buildShareBar(postId){
     const buttons = SHARE_PLATFORMS.map(p => `
-      <button type="button" class="share-icon" style="background:${p.color};${p.dark ? 'color:#3a3a3a;' : ''}"
+      <button type="button" class="share-icon"
         title="Share on ${p.label}" aria-label="Share on ${p.label}"
         onclick="sharePost('${p.id}', '${postId}')">
         <svg viewBox="0 0 24 24" aria-hidden="true">${p.svg}</svg>
@@ -1272,75 +1287,93 @@
     return { title, url };
   }
 
-  function copyAndOpen(platformLabel, openUrl, text){
-    const finish = () => {
-      alert(`Link copied! Open ${platformLabel} and paste it into your post, story, or chat.`);
-      if (openUrl) window.open(openUrl, '_blank');
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(finish).catch(finish);
-    } else {
-      finish();
+  // Shows the post's own link in a small pill at the bottom of the screen so
+  // the reader can see (and, since it's already copied, paste) exactly what
+  // they're about to share.
+  function showShareToast(url){
+    let toast = document.getElementById('share-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'share-toast';
+      document.body.appendChild(toast);
     }
+    toast.textContent = url;
+    toast.classList.add('visible');
+    clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(() => toast.classList.remove('visible'), 3500);
+  }
+
+  // Tries to jump straight into the reader's own app for that platform via its
+  // mobile deep link; if the app isn't installed (the page never loses focus)
+  // it falls back to opening the platform's website instead.
+  function openPlatform(appScheme, webUrl){
+    if (!appScheme) {
+      if (webUrl) window.open(webUrl, '_blank');
+      return;
+    }
+    let left = false;
+    const markLeft = () => { left = true; };
+    document.addEventListener('visibilitychange', markLeft, { once: true });
+    window.addEventListener('pagehide', markLeft, { once: true });
+    window.location.href = appScheme;
+    setTimeout(() => {
+      document.removeEventListener('visibilitychange', markLeft);
+      window.removeEventListener('pagehide', markLeft);
+      if (!left && webUrl) window.open(webUrl, '_blank');
+    }, 900);
   }
 
   function sharePost(platform, postId){
     const { title, url } = getPostShareData(postId);
     const t = encodeURIComponent(title);
     const u = encodeURIComponent(url);
-    const text = `${title} — ${url}`;
-    switch (platform) {
-      case 'facebook':
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${u}`, '_blank'); break;
-      case 'whatsapp':
-        window.open(`https://wa.me/?text=${t}%20${u}`, '_blank'); break;
-      case 'telegram':
-        window.open(`https://t.me/share/url?url=${u}&text=${t}`, '_blank'); break;
-      case 'reddit':
-        window.open(`https://www.reddit.com/submit?url=${u}&title=${t}`, '_blank'); break;
-      case 'x':
-        window.open(`https://twitter.com/intent/tweet?url=${u}&text=${t}`, '_blank'); break;
-      case 'pinterest':
-        window.open(`https://pinterest.com/pin/create/button/?url=${u}&description=${t}`, '_blank'); break;
-      case 'linkedin':
-        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${u}`, '_blank'); break;
-      case 'qq':
-        window.open(`https://connect.qq.com/widget/shareqq/index.html?url=${u}&title=${t}`, '_blank'); break;
-      case 'qzone':
-        window.open(`https://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url=${u}&title=${t}`, '_blank'); break;
-      case 'weibo':
-        window.open(`https://service.weibo.com/share/share.php?url=${u}&title=${t}`, '_blank'); break;
-      case 'threads':
-        window.open(`https://www.threads.net/intent/post?text=${t}%20${u}`, '_blank'); break;
-      case 'mastodon': {
-        const instance = prompt('Enter your Mastodon instance domain (e.g. mastodon.social):');
-        if (!instance) return;
-        const host = instance.trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
-        window.open(`https://${host}/share?text=${t}%20${u}`, '_blank');
-        break;
-      }
-      // The platforms below don't offer a public web "share" link — the most
-      // reliable option is to copy the post link and open the app/site so the
-      // reader can paste it themselves.
-      case 'youtube':
-        copyAndOpen('YouTube', 'https://www.youtube.com', text); break;
-      case 'instagram':
-        copyAndOpen('Instagram', 'https://www.instagram.com', text); break;
-      case 'tiktok':
-        copyAndOpen('TikTok', 'https://www.tiktok.com', text); break;
-      case 'wechat':
-        copyAndOpen('WeChat', null, text); break;
-      case 'messenger':
-        copyAndOpen('Messenger', 'https://www.messenger.com', text); break;
-      case 'snapchat':
-        copyAndOpen('Snapchat', 'https://www.snapchat.com', text); break;
-      case 'discord':
-        copyAndOpen('Discord', 'https://discord.com/app', text); break;
-      case 'douyin':
-        copyAndOpen('Douyin', 'https://www.douyin.com', text); break;
-      case 'kuaishou':
-        copyAndOpen('Kuaishou', 'https://www.kuaishou.com', text); break;
+
+    // Show the link and put it on the clipboard for every platform, since a
+    // few of them (WeChat, Douyin, Kuaishou...) only let the reader paste it
+    // in manually once their app is open.
+    showShareToast(url);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).catch(() => {});
     }
+
+    if (platform === 'mastodon') {
+      const instance = prompt('Enter your Mastodon instance domain (e.g. mastodon.social):');
+      if (!instance) return;
+      const host = instance.trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+      openPlatform(null, `https://${host}/share?text=${t}%20${u}`);
+      return;
+    }
+
+    // Each entry tries the platform's own mobile app first (via its deep-link
+    // scheme) and falls back to the matching web page if the app isn't there.
+    const targets = {
+      facebook:  { app: `fb://share/?link=${u}`, web: `https://www.facebook.com/sharer/sharer.php?u=${u}` },
+      whatsapp:  { app: `whatsapp://send?text=${t}%20${u}`, web: `https://wa.me/?text=${t}%20${u}` },
+      telegram:  { app: `tg://msg_url?url=${u}&text=${t}`, web: `https://t.me/share/url?url=${u}&text=${t}` },
+      messenger: { app: `fb-messenger://share?link=${u}`, web: `https://www.messenger.com` },
+      x:         { app: `twitter://post?message=${t}%20${u}`, web: `https://twitter.com/intent/tweet?url=${u}&text=${t}` },
+      reddit:    { app: `reddit://submit?url=${u}&title=${t}`, web: `https://www.reddit.com/submit?url=${u}&title=${t}` },
+      pinterest: { app: `pinterest://pin/create/button?url=${u}&description=${t}`, web: `https://pinterest.com/pin/create/button/?url=${u}&description=${t}` },
+      linkedin:  { app: null, web: `https://www.linkedin.com/sharing/share-offsite/?url=${u}` },
+      threads:   { app: null, web: `https://www.threads.net/intent/post?text=${t}%20${u}` },
+      weibo:     { app: `sinaweibo://shareweibo?type=text&text=${t}%20${u}`, web: `https://service.weibo.com/share/share.php?url=${u}&title=${t}` },
+      qq:        { app: `mqq://share/to_fri?src_type=web&version=1&file_type=news&title=${t}&url=${u}&description=${t}`, web: `https://connect.qq.com/widget/shareqq/index.html?url=${u}&title=${t}` },
+      qzone:     { app: null, web: `https://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url=${u}&title=${t}` },
+      // These platforms don't accept a pre-filled link through any public
+      // scheme — opening the app (or site) plus the copied link above is the
+      // most reliable option, and the reader pastes it in themselves.
+      youtube:   { app: `youtube://`, web: `https://www.youtube.com` },
+      instagram: { app: `instagram://app`, web: `https://www.instagram.com` },
+      tiktok:    { app: `tiktok://`, web: `https://www.tiktok.com` },
+      wechat:    { app: `weixin://`, web: null },
+      snapchat:  { app: `snapchat://`, web: `https://www.snapchat.com` },
+      discord:   { app: `discord://`, web: `https://discord.com/app` },
+      douyin:    { app: null, web: `https://www.douyin.com` },
+      kuaishou:  { app: null, web: `https://www.kuaishou.com` }
+    };
+
+    const target = targets[platform];
+    if (target) openPlatform(target.app, target.web);
   }
 
   function renderPosts(posts){

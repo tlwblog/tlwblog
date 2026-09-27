@@ -1,5 +1,7 @@
 {
   "rewrites": [
-    { "source": "/post/:id", "destination": "/api/post/:id" }
+    { "source": "/post/:id", "destination": "/api/post/:id" },
+    { "source": "/home", "destination": "/api/section/home" },
+    { "source": "/board", "destination": "/api/section/board" }
   ]
 }

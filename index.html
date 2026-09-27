@@ -1270,14 +1270,11 @@
 
     if (!title || !editor.textContent.trim()) { alert('Please provide a title and your beautiful thoughts.'); return; }
 
-    let media_data = null, media_type = null;
-    if (postMediaEditorState.length) {
-      media_data = JSON.stringify(postMediaEditorState);
-    } else if (editingPostId) {
-      // keep the existing media unless new files were chosen (or all were removed above)
-      const existing = cachedPosts.find(p => String(p.id) === String(editingPostId));
-      if (existing) { media_data = existing.media_data; media_type = existing.media_type; }
-    }
+    // postMediaEditorState always reflects the intended final media for this post —
+    // populated from the existing post when editing, updated as photos/videos are
+    // added, reframed, or removed — so an empty array here means "delete all media."
+    const media_data = postMediaEditorState.length ? JSON.stringify(postMediaEditorState) : null;
+    const media_type = null;
 
     let error;
     if (editingPostId) {

@@ -402,6 +402,14 @@
     width: 20px; height: 20px; cursor: pointer; font-size: 0.7rem; line-height: 1;
   }
   .post-media-remove:hover{ background: rgba(167,95,113,0.85); }
+  .post-media-item{ position: relative; }
+  .post-media-item .post-media-remove{ top: 0.5rem; right: 0.5rem; width: 26px; height: 26px; font-size: 0.85rem; }
+  .post-card > .post-media-item{ margin-bottom: 1.4rem; }
+  .post-card > .post-media-item img, .post-card > .post-media-item video{ margin-bottom: 0; }
+  .archived-posts{ margin-top: 1rem; }
+  .archived-posts > summary{ cursor: pointer; color: var(--ink-soft); font-size: 0.9rem; margin-bottom: 1.6rem; }
+  .archived-posts .post-card{ opacity: 0.7; }
+  .archived-badge{ display: inline-block; font-size: 0.72rem; color: var(--ink-soft); border: 1px solid var(--rule); border-radius: 999px; padding: 0.1rem 0.6rem; margin-bottom: 0.6rem; }
   .post-card h3{ font-family: 'Fraunces', serif; font-weight: 500; color: var(--rose-deep); font-size: 1.7rem; margin-bottom: 0.3rem; }
   .post-date{ font-size: 0.82rem; color: var(--ink-soft); display: block; margin-bottom: 0.9rem; }
   .post-card .post-body p{ margin: 0 0 1.2rem; }
@@ -1443,26 +1451,27 @@
   function renderPosts(posts){
     const feed = document.getElementById('blog-feed');
     if (!posts.length) { feed.innerHTML = ''; return; }
-    feed.innerHTML = posts.map(post => {
+    const cardHTML = post => {
       let mediaHTML = '';
       const mediaItems = getPostMediaItems(post);
       const posStyle = m => `object-position:${m.posX != null ? m.posX : 50}% ${m.posY != null ? m.posY : 50}%;`;
+      // Owner-only: each photo/video gets its own delete (✕) button.
+      const wrapMedia = (inner, idx) => isAdmin
+        ? `<div class="post-media-item">${inner}<button type="button" class="post-media-remove" title="Delete this ${mediaItems[idx].type === 'video' ? 'video' : 'photo'}" onclick="deletePostMedia('${post.id}', ${idx})">✕</button></div>`
+        : inner;
+      const mediaTag = m => m.type === 'video'
+        ? `<video controls src="${m.data}" style="${posStyle(m)}"></video>`
+        : `<img src="${m.data}" alt="" style="${posStyle(m)}">`;
       if (mediaItems.length === 1) {
-        const m = mediaItems[0];
-        mediaHTML = m.type === 'video'
-          ? `<video controls src="${m.data}" style="${posStyle(m)}"></video>`
-          : `<img src="${m.data}" alt="" style="${posStyle(m)}">`;
+        mediaHTML = wrapMedia(mediaTag(mediaItems[0]), 0);
       } else if (mediaItems.length > 1) {
-        mediaHTML = `<div class="post-media-gallery">` + mediaItems.map(m =>
-          m.type === 'video'
-            ? `<video controls src="${m.data}" style="${posStyle(m)}"></video>`
-            : `<img src="${m.data}" alt="" style="${posStyle(m)}">`
-        ).join('') + `</div>`;
+        mediaHTML = `<div class="post-media-gallery">` + mediaItems.map((m, idx) => wrapMedia(mediaTag(m), idx)).join('') + `</div>`;
       }
       const dateStr = new Date(post.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       const ownerActions = isAdmin ? `
         <div class="post-owner-actions">
           <button type="button" onclick="editPost('${post.id}')">Edit</button>
+          <button type="button" onclick="toggleArchivePost('${post.id}')">${post.archived ? 'Unarchive' : 'Archive'}</button>
           <button type="button" onclick="deletePost('${post.id}')">Delete</button>
         </div>
       ` : '';
@@ -1470,6 +1479,7 @@
         <div class="post-card" id="post-${post.id}" data-post-id="${post.id}">
           ${mediaHTML}
           ${ownerActions}
+          ${post.archived ? '<span class="archived-badge">Archived — only you can see this</span>' : ''}
           <h3>${post.title}</h3>
           <span class="post-date">${dateStr}</span>
           <div class="post-body">${post.content}</div>
@@ -1486,9 +1496,40 @@
           </div>
         </div>
       `;
-    }).join('');
+    };
 
-    posts.forEach(post => loadComments(post.id));
+    // Archived posts are hidden from readers; only the owner sees them, tucked below the feed.
+    const active = posts.filter(p => !p.archived);
+    const archived = isAdmin ? posts.filter(p => p.archived) : [];
+    feed.innerHTML = active.map(cardHTML).join('') +
+      (archived.length
+        ? `<details class="archived-posts"><summary>Archived posts (${archived.length})</summary>${archived.map(cardHTML).join('')}</details>`
+        : '');
+
+    active.concat(archived).forEach(post => loadComments(post.id));
+  }
+
+  async function toggleArchivePost(id){
+    const post = cachedPosts.find(p => String(p.id) === String(id));
+    if (!post) return;
+    const archiving = !post.archived;
+    if (archiving && !confirm('Archive this post? It will be hidden from readers, but you can unarchive it any time.')) return;
+    const { error } = await sb.from('posts').update({ archived: archiving }).eq('id', id);
+    if (error) { alert('Could not ' + (archiving ? 'archive' : 'unarchive') + ' — make sure the "archived" column exists in your posts table (see setup note), or try logging in again.'); return; }
+    loadPosts();
+  }
+
+  async function deletePostMedia(id, index){
+    const post = cachedPosts.find(p => String(p.id) === String(id));
+    if (!post) return;
+    const items = getPostMediaItems(post);
+    if (!items[index]) return;
+    if (!confirm('Delete this ' + (items[index].type === 'video' ? 'video' : 'photo') + ' from the post? This cannot be undone.')) return;
+    items.splice(index, 1);
+    const media_data = items.length ? JSON.stringify(items) : null;
+    const { error } = await sb.from('posts').update({ media_data, media_type: null }).eq('id', id);
+    if (error) { alert('Could not delete — try logging in again.'); return; }
+    loadPosts();
   }
 
   async function publishPost(){
@@ -1609,8 +1650,8 @@
       const files = Array.from(postMediaInput.files || []);
       if (!files.length) return;
       const MAX_IMAGES = 20, MAX_VIDEOS = 10;
-      const imageCount = files.filter(f => f.type.startsWith('image')).length;
-      const videoCount = files.filter(f => f.type.startsWith('video')).length;
+      const imageCount = files.filter(f => f.type.startsWith('image')).length + postMediaEditorState.filter(m => m.type !== 'video').length;
+      const videoCount = files.filter(f => f.type.startsWith('video')).length + postMediaEditorState.filter(m => m.type === 'video').length;
       if (imageCount > MAX_IMAGES) { alert(`You can upload up to ${MAX_IMAGES} images per post.`); postMediaInput.value = ''; return; }
       if (videoCount > MAX_VIDEOS) { alert(`You can upload up to ${MAX_VIDEOS} videos per post.`); postMediaInput.value = ''; return; }
 
@@ -1623,7 +1664,9 @@
         });
         reader.readAsDataURL(file);
       }))).then(items => {
-        postMediaEditorState = items;
+        // Add to what's already there so earlier uploads aren't lost
+        postMediaEditorState = postMediaEditorState.concat(items);
+        postMediaInput.value = '';
         renderPostMediaEditor();
       });
     });

@@ -406,6 +406,19 @@
   .post-media-item .post-media-remove{ top: 0.5rem; right: 0.5rem; width: 26px; height: 26px; font-size: 0.85rem; }
   .post-card > .post-media-item{ margin-bottom: 1.4rem; }
   .post-card > .post-media-item img, .post-card > .post-media-item video{ margin-bottom: 0; }
+  .month-jump-wrap{ text-align: center; margin-bottom: 2rem; }
+  .month-jump-wrap select{
+    font-family: 'Jost', sans-serif; font-size: 0.9rem; color: var(--ink-soft);
+    background: #fff; border: 1px solid var(--rule); border-radius: 999px;
+    padding: 0.45rem 1rem; cursor: pointer;
+  }
+  .month-group{ margin-bottom: 1rem; }
+  .month-group > summary{
+    cursor: pointer; font-family: 'Fraunces', serif; font-weight: 500;
+    color: var(--rose-deep); font-size: 1.3rem; padding: 0.6rem 0; margin-bottom: 1.6rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .month-group > summary .month-count{ font-family: 'Jost', sans-serif; font-size: 0.85rem; color: var(--ink-soft); }
   .archived-posts{ margin-top: 1rem; }
   .archived-posts > summary{ cursor: pointer; color: var(--ink-soft); font-size: 0.9rem; margin-bottom: 1.6rem; }
   .archived-posts .post-card{ opacity: 0.7; }
@@ -1308,6 +1321,8 @@
     showSection('blog');
     const el = document.querySelector(hash);
     if (!el) return;
+    const parentGroup = el.closest('details');
+    if (parentGroup) parentGroup.open = true;
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     el.classList.add('post-highlight');
     setTimeout(() => el.classList.remove('post-highlight'), 2200);
@@ -1501,12 +1516,49 @@
     // Archived posts are hidden from readers; only the owner sees them, tucked below the feed.
     const active = posts.filter(p => !p.archived);
     const archived = isAdmin ? posts.filter(p => p.archived) : [];
-    feed.innerHTML = active.map(cardHTML).join('') +
+
+    // Group published posts by month (newest first), based on each post's publish date.
+    const prevOpen = new Set(Array.from(feed.querySelectorAll('details.month-group[open]')).map(d => d.id));
+    const hadMonths = feed.querySelector('details.month-group') !== null;
+    const groups = [];
+    active.forEach(post => {
+      const d = new Date(post.created_at);
+      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      let g = groups.find(x => x.key === key);
+      if (!g) {
+        g = { key, label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), posts: [] };
+        groups.push(g);
+      }
+      g.posts.push(post);
+    });
+    const jumpHTML = groups.length > 1
+      ? `<div class="month-jump-wrap"><select onchange="jumpToMonth(this.value); this.selectedIndex = 0;" aria-label="Jump to month">
+           <option value="">Jump to month…</option>
+           ${groups.map(g => `<option value="month-${g.key}">${g.label} (${g.posts.length})</option>`).join('')}
+         </select></div>`
+      : '';
+    const monthsHTML = groups.map((g, gi) => {
+      const open = hadMonths ? prevOpen.has('month-' + g.key) : gi === 0;
+      return `<details class="month-group" id="month-${g.key}" ${open ? 'open' : ''}>
+        <summary>${g.label} <span class="month-count">(${g.posts.length})</span></summary>
+        ${g.posts.map(cardHTML).join('')}
+      </details>`;
+    }).join('');
+
+    feed.innerHTML = jumpHTML + monthsHTML +
       (archived.length
         ? `<details class="archived-posts"><summary>Archived posts (${archived.length})</summary>${archived.map(cardHTML).join('')}</details>`
         : '');
 
     active.concat(archived).forEach(post => loadComments(post.id));
+  }
+
+  function jumpToMonth(id){
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.open = true;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   async function toggleArchivePost(id){

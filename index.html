@@ -427,6 +427,35 @@
   .month-group:not([open]) > summary .month-chevron{ transform: rotate(-90deg); }
   .month-group:not([open]) > summary{ margin-bottom: 0.8rem; }
   .archived-posts{ margin-top: 1rem; }
+  .blog-search-wrap{ text-align: center; margin-bottom: 1.6rem; }
+  .blog-search-wrap input{
+    width: 100%; max-width: 360px; font-family: 'Jost', sans-serif; font-size: 0.95rem;
+    color: var(--ink); background: #fff; border: 1px solid var(--rule); border-radius: 999px;
+    padding: 0.6rem 1.1rem;
+  }
+  .search-empty{ text-align: center; color: var(--ink-soft); margin: 2rem 0; }
+  .post-card img[data-media-index]{ cursor: zoom-in; }
+  .post-alt-input{
+    width: 140px; margin: -0.3rem 0.6rem 0.6rem 0; padding: 0.3rem 0.5rem; font-size: 0.75rem;
+    font-family: 'Jost', sans-serif; border: 1px solid var(--rule); border-radius: 8px; background: #fff; color: var(--ink);
+  }
+  .post-editor-item{ display: flex; flex-direction: column; }
+  #draft-btn{ background: none; border: 1px solid var(--rule); color: var(--ink-soft); }
+  .lightbox{
+    position: fixed; inset: 0; z-index: 9999; background: rgba(40,28,32,0.93);
+    display: flex; align-items: center; justify-content: center; flex-direction: column;
+  }
+  .lightbox img{ max-width: 92vw; max-height: 80vh; object-fit: contain; border-radius: 10px; }
+  .lightbox-caption{ color: #fff; font-size: 0.9rem; margin-top: 0.9rem; min-height: 1.2em; text-align: center; padding: 0 1rem; }
+  .lightbox-close, .lightbox-nav{
+    position: absolute; background: rgba(255,255,255,0.15); color: #fff; border: none;
+    border-radius: 50%; width: 42px; height: 42px; font-size: 1.3rem; cursor: pointer;
+  }
+  .lightbox-close:hover, .lightbox-nav:hover{ background: rgba(255,255,255,0.3); }
+  .lightbox-close{ top: 1rem; right: 1rem; }
+  .lightbox-nav{ top: 50%; transform: translateY(-50%); }
+  .lightbox-prev{ left: 0.8rem; }
+  .lightbox-next{ right: 0.8rem; }
   .archived-posts > summary{ cursor: pointer; color: var(--ink-soft); font-size: 0.9rem; margin-bottom: 1.6rem; }
   .archived-posts .post-card{ opacity: 0.7; }
   .archived-badge{ display: inline-block; font-size: 0.72rem; color: var(--ink-soft); border: 1px solid var(--rule); border-radius: 999px; padding: 0.1rem 0.6rem; margin-bottom: 0.6rem; }
@@ -724,6 +753,7 @@
     <div id="post-media-editor" style="display:flex; flex-wrap:wrap; margin: 0.6rem 0 0.4rem;"></div>
     <div class="editor-actions">
       <button id="publish-btn" onclick="publishPost()">Publish post</button>
+      <button type="button" id="draft-btn" onclick="publishPost(true)">Save as draft</button>
       <button type="button" class="cancel-edit-link" id="cancel-edit-btn" onclick="cancelEditPost()" style="display:none;">Cancel edit</button>
     </div>
 
@@ -736,6 +766,9 @@
     <button onclick="saveVisionBoard()">Save vision board</button>
   </div>
 
+  <div class="blog-search-wrap" id="blog-search-wrap" style="display:none;">
+    <input type="search" id="blog-search" placeholder="Search posts…" aria-label="Search posts" oninput="onBlogSearch(this.value)">
+  </div>
   <div id="blog-feed"></div>
 </section>
 
@@ -755,6 +788,14 @@
     <div id="footer-share-bar"></div>
   </div>
 </footer>
+
+<div class="lightbox" id="lightbox" style="display:none;" role="dialog" aria-modal="true" aria-label="Photo viewer">
+  <button type="button" class="lightbox-close" onclick="closeLightbox()" aria-label="Close">✕</button>
+  <button type="button" class="lightbox-nav lightbox-prev" onclick="stepLightbox(-1)" aria-label="Previous photo">‹</button>
+  <img id="lightbox-img" alt="">
+  <button type="button" class="lightbox-nav lightbox-next" onclick="stepLightbox(1)" aria-label="Next photo">›</button>
+  <p class="lightbox-caption" id="lightbox-caption"></p>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -1309,6 +1350,25 @@
 
   let cachedPosts = [];
   let editingPostId = null;
+  let blogSearchQuery = '';
+  let blogSearchTimer = null;
+
+  function onBlogSearch(value){
+    clearTimeout(blogSearchTimer);
+    blogSearchTimer = setTimeout(() => {
+      blogSearchQuery = (value || '').trim().toLowerCase();
+      renderPosts(cachedPosts);
+    }, 250);
+  }
+
+  function postSearchText(post){
+    if (post._searchText == null) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = post.content || '';
+      post._searchText = ((post.title || '') + ' ' + tmp.textContent).toLowerCase();
+    }
+    return post._searchText;
+  }
 
   async function loadPosts(){
     const { data } = await sb.from('posts').select('*').order('created_at', { ascending: false });
@@ -1333,6 +1393,41 @@
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     el.classList.add('post-highlight');
     setTimeout(() => el.classList.remove('post-highlight'), 2200);
+  }
+
+  // Escapes text before it is placed inside page HTML (used for titles and photo descriptions).
+  function esc(str){
+    return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+
+  // ---------- photo/video storage (Supabase Storage instead of inside the post row) ----------
+  const MEDIA_BUCKET = 'post-media';
+
+  async function uploadPostFile(file){
+    const ext = ((file.name || '').split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
+    const path = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+    const { error } = await sb.storage.from(MEDIA_BUCKET).upload(path, file, { contentType: file.type, cacheControl: '31536000' });
+    if (error) throw error;
+    return sb.storage.from(MEDIA_BUCKET).getPublicUrl(path).data.publicUrl;
+  }
+
+  function fileToDataURL(file){
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Deletes the stored files behind the given media items (older posts that hold the picture
+  // inside the post itself have nothing to remove here). Best-effort: failures are ignored.
+  async function removeStoredFiles(items){
+    const marker = '/storage/v1/object/public/' + MEDIA_BUCKET + '/';
+    const paths = (items || [])
+      .map(m => (m && typeof m.data === 'string' && m.data.includes(marker)) ? decodeURIComponent(m.data.split(marker)[1].split('?')[0]) : null)
+      .filter(Boolean);
+    if (!paths.length) return;
+    try { await sb.storage.from(MEDIA_BUCKET).remove(paths); } catch (e) { /* ignore */ }
   }
 
   // Reads a post's media as an array of {data, type}, whatever format it was saved in
@@ -1472,7 +1567,11 @@
 
   function renderPosts(posts){
     const feed = document.getElementById('blog-feed');
+    const searchWrap = document.getElementById('blog-search-wrap');
+    if (searchWrap) searchWrap.style.display = posts.length ? 'block' : 'none';
     if (!posts.length) { feed.innerHTML = ''; return; }
+    const allPosts = posts;
+    if (blogSearchQuery) posts = posts.filter(p => postSearchText(p).includes(blogSearchQuery));
     const cardHTML = post => {
       let mediaHTML = '';
       const mediaItems = getPostMediaItems(post);
@@ -1481,13 +1580,13 @@
       const wrapMedia = (inner, idx) => isAdmin
         ? `<div class="post-media-item">${inner}<button type="button" class="post-media-remove" title="Delete this ${mediaItems[idx].type === 'video' ? 'video' : 'photo'}" onclick="deletePostMedia('${post.id}', ${idx})">✕</button></div>`
         : inner;
-      const mediaTag = m => m.type === 'video'
-        ? `<video controls src="${m.data}" style="${posStyle(m)}"></video>`
-        : `<img src="${m.data}" alt="" style="${posStyle(m)}">`;
+      const mediaTag = (m, idx) => m.type === 'video'
+        ? `<video controls src="${m.data}" style="${posStyle(m)}"${m.alt ? ` aria-label="${esc(m.alt)}"` : ''}></video>`
+        : `<img src="${m.data}" alt="${esc(m.alt || '')}" data-media-index="${idx}" style="${posStyle(m)}">`;
       if (mediaItems.length === 1) {
-        mediaHTML = wrapMedia(mediaTag(mediaItems[0]), 0);
+        mediaHTML = wrapMedia(mediaTag(mediaItems[0], 0), 0);
       } else if (mediaItems.length > 1) {
-        mediaHTML = `<div class="post-media-gallery">` + mediaItems.map((m, idx) => wrapMedia(mediaTag(m), idx)).join('') + `</div>`;
+        mediaHTML = `<div class="post-media-gallery">` + mediaItems.map((m, idx) => wrapMedia(mediaTag(m, idx), idx)).join('') + `</div>`;
       }
       const dateStr = new Date(post.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       const ownerActions = isAdmin ? `
@@ -1501,8 +1600,9 @@
         <div class="post-card" id="post-${post.id}" data-post-id="${post.id}">
           ${mediaHTML}
           ${ownerActions}
+          ${post.draft ? '<span class="archived-badge">Draft — only you can see this</span>' : ''}
           ${post.archived ? '<span class="archived-badge">Archived — only you can see this</span>' : ''}
-          <h3>${post.title}</h3>
+          <h3>${esc(post.title)}</h3>
           <span class="post-date">${dateStr}</span>
           <div class="post-body">${post.content}</div>
           ${buildShareBar(post.id)}
@@ -1521,8 +1621,9 @@
     };
 
     // Archived posts are hidden from readers; only the owner sees them, tucked below the feed.
-    const active = posts.filter(p => !p.archived);
-    const archived = isAdmin ? posts.filter(p => p.archived) : [];
+    const active = posts.filter(p => !p.archived && !p.draft);
+    const archived = isAdmin ? posts.filter(p => p.archived && !p.draft) : [];
+    const drafts = isAdmin ? posts.filter(p => p.draft) : [];
 
     // Group published posts by month (newest first), based on each post's publish date.
     const prevOpen = new Set(Array.from(feed.querySelectorAll('details.month-group[open]')).map(d => d.id));
@@ -1538,13 +1639,16 @@
       }
       g.posts.push(post);
     });
-    const jumpHTML = groups.length > 1
+    const jumpHTML = (groups.length > 1 && !blogSearchQuery)
       ? `<div class="month-jump-wrap"><select onchange="jumpToMonth(this.value); this.selectedIndex = 0;" aria-label="Jump to month">
            <option value="">Jump to month…</option>
            ${groups.map(g => `<option value="month-${g.key}">${g.label} (${g.posts.length})</option>`).join('')}
          </select></div>`
       : '';
-    const monthsHTML = groups.map((g, gi) => {
+    const searchHTML = blogSearchQuery
+      ? (active.length ? active.map(cardHTML).join('') : (drafts.length || archived.length ? '' : '<p class="search-empty">No posts match your search.</p>'))
+      : '';
+    const monthsHTML = blogSearchQuery ? '' : groups.map((g, gi) => {
       const open = hadMonths ? prevOpen.has('month-' + g.key) : false;
       return `<details class="month-group" id="month-${g.key}" ${open ? 'open' : ''}>
         <summary><span>${g.label} <span class="month-count">(${g.posts.length})</span></span><span class="month-chevron">▼</span></summary>
@@ -1552,12 +1656,15 @@
       </details>`;
     }).join('');
 
-    feed.innerHTML = jumpHTML + monthsHTML +
+    feed.innerHTML = jumpHTML + monthsHTML + searchHTML +
+      (drafts.length
+        ? `<details class="archived-posts"${blogSearchQuery ? ' open' : ''}><summary>Drafts (${drafts.length})</summary>${drafts.map(cardHTML).join('')}</details>`
+        : '') +
       (archived.length
         ? `<details class="archived-posts"><summary>Archived posts (${archived.length})</summary>${archived.map(cardHTML).join('')}</details>`
         : '');
 
-    active.concat(archived).forEach(post => loadComments(post.id));
+    active.concat(drafts, archived).forEach(post => loadComments(post.id));
   }
 
   function jumpToMonth(id){
@@ -1584,38 +1691,84 @@
     const items = getPostMediaItems(post);
     if (!items[index]) return;
     if (!confirm('Delete this ' + (items[index].type === 'video' ? 'video' : 'photo') + ' from the post? This cannot be undone.')) return;
-    items.splice(index, 1);
+    const removed = items.splice(index, 1);
     const media_data = items.length ? JSON.stringify(items) : null;
     const { error } = await sb.from('posts').update({ media_data, media_type: null }).eq('id', id);
     if (error) { alert('Could not delete — try logging in again.'); return; }
+    await removeStoredFiles(removed);
     loadPosts();
   }
 
-  async function publishPost(){
+  async function publishPost(asDraft){
+    asDraft = asDraft === true;
     const title = document.getElementById('post-title').value.trim();
     const editor = document.getElementById('post-content');
     const content = editor.innerHTML.trim();
 
     if (!title || !editor.textContent.trim()) { alert('Please provide a title and your beautiful thoughts.'); return; }
 
-    // postMediaEditorState always reflects the intended final media for this post —
-    // populated from the existing post when editing, updated as photos/videos are
-    // added, reframed, or removed — so an empty array here means "delete all media."
-    const media_data = postMediaEditorState.length ? JSON.stringify(postMediaEditorState) : null;
-    const media_type = null;
+    const publishBtn = document.getElementById('publish-btn');
+    const draftBtn = document.getElementById('draft-btn');
+    const publishLabel = publishBtn.textContent;
+    publishBtn.disabled = true; draftBtn.disabled = true;
 
-    let error;
-    if (editingPostId) {
-      ({ error } = await sb.from('posts').update({ title, content, media_data, media_type }).eq('id', editingPostId));
-    } else {
-      ({ error } = await sb.from('posts').insert({ title, content, media_data, media_type }));
+    try {
+      // Photos/videos picked just now are uploaded to storage here; ones already saved are kept as-is.
+      // (If storage isn't set up yet, a file falls back to being saved inside the post, like before.)
+      let fellBack = false;
+      const finalItems = [];
+      for (let i = 0; i < postMediaEditorState.length; i++) {
+        const m = postMediaEditorState[i];
+        let data = m.data;
+        if (m.file) {
+          publishBtn.textContent = `Uploading ${i + 1}/${postMediaEditorState.length}…`;
+          try { data = await uploadPostFile(m.file); }
+          catch (e) { fellBack = true; data = await fileToDataURL(m.file); }
+        }
+        const item = { data, type: m.type, posX: m.posX, posY: m.posY };
+        if (m.alt) item.alt = m.alt;
+        finalItems.push(item);
+      }
+      publishBtn.textContent = publishLabel;
+
+      // finalItems always reflects the intended final media for this post, so an empty array means "delete all media."
+      const media_data = finalItems.length ? JSON.stringify(finalItems) : null;
+      const media_type = null;
+
+      const existing = editingPostId ? cachedPosts.find(p => String(p.id) === String(editingPostId)) : null;
+      const wasDraft = !!(existing && existing.draft);
+      const payload = { title, content, media_data, media_type };
+      if (asDraft) payload.draft = true;
+      else if (wasDraft) { payload.draft = false; payload.created_at = new Date().toISOString(); }
+
+      let error;
+      if (editingPostId) {
+        ({ error } = await sb.from('posts').update(payload).eq('id', editingPostId));
+      } else {
+        ({ error } = await sb.from('posts').insert(payload));
+      }
+      if (error) {
+        alert(asDraft || wasDraft
+          ? 'Could not save — make sure the "draft" column exists in your posts table (see setup note), or try logging in again.'
+          : 'Could not save — try logging in again.');
+        return;
+      }
+
+      // Clean up stored files for photos/videos that were removed while editing this post.
+      if (existing) {
+        const keep = new Set(finalItems.map(m => m.data));
+        await removeStoredFiles(getPostMediaItems(existing).filter(m => !keep.has(m.data)));
+      }
+
+      const wasEditing = !!editingPostId;
+      cancelEditPost();
+      loadPosts();
+      alert((asDraft ? 'Draft saved — only you can see it.' : (wasEditing ? 'Your post has been updated!' : 'Your post has been published for everyone to see!'))
+        + (fellBack ? '\n\nNote: photo/video storage isn\'t set up yet, so the media was saved inside the post instead.' : ''));
+    } finally {
+      publishBtn.disabled = false; draftBtn.disabled = false;
+      if (publishBtn.textContent.startsWith('Uploading')) publishBtn.textContent = publishLabel;
     }
-    if (error) { alert('Could not save — try logging in again.'); return; }
-
-    const wasEditing = !!editingPostId;
-    cancelEditPost();
-    loadPosts();
-    alert(wasEditing ? 'Your post has been updated!' : 'Your post has been published for everyone to see!');
   }
 
   function editPost(id){
@@ -1625,7 +1778,8 @@
     document.getElementById('post-title').value = post.title;
     document.getElementById('post-content').innerHTML = post.content;
     document.getElementById('composer-heading').textContent = 'Edit post';
-    document.getElementById('publish-btn').textContent = 'Update post';
+    document.getElementById('publish-btn').textContent = post.draft ? 'Publish post' : 'Update post';
+    document.getElementById('draft-btn').style.display = post.draft ? 'inline-block' : 'none';
     document.getElementById('cancel-edit-btn').style.display = 'inline-block';
     buildPostMediaEditor(getPostMediaItems(post));
     document.getElementById('composer-heading').scrollIntoView({ behavior: 'smooth' });
@@ -1637,8 +1791,10 @@
     document.getElementById('post-content').innerHTML = '';
     document.getElementById('composer-heading').textContent = 'Compose a new post';
     document.getElementById('publish-btn').textContent = 'Publish post';
+    document.getElementById('draft-btn').style.display = 'inline-block';
     document.getElementById('cancel-edit-btn').style.display = 'none';
     document.getElementById('post-media').value = '';
+    postMediaEditorState.forEach(m => { if (m.preview) URL.revokeObjectURL(m.preview); });
     postMediaEditorState = [];
     renderPostMediaEditor();
   }
@@ -1651,7 +1807,8 @@
       data: m.data,
       type: m.type || 'image',
       posX: m.posX != null ? m.posX : 50,
-      posY: m.posY != null ? m.posY : 50
+      posY: m.posY != null ? m.posY : 50,
+      alt: m.alt || ''
     }));
     renderPostMediaEditor();
   }
@@ -1661,22 +1818,30 @@
     if (!wrap) return;
     if (!postMediaEditorState.length) { wrap.innerHTML = ''; return; }
     wrap.innerHTML = postMediaEditorState.map((m, i) => `
-      <div class="vision-reposition" id="pm${i}" data-index="${i}" style="width:140px; height:105px; margin:0 0.6rem 0.6rem 0;">
-        <span class="vision-reposition-hint">Drag to reframe</span>
-        <button type="button" class="post-media-remove" data-index="${i}" title="Remove">✕</button>
+      <div class="post-editor-item">
+        <div class="vision-reposition" id="pm${i}" data-index="${i}" style="width:140px; height:105px; margin:0 0.6rem 0.6rem 0;">
+          <span class="vision-reposition-hint">Drag to reframe</span>
+          <button type="button" class="post-media-remove" data-index="${i}" title="Remove">✕</button>
+        </div>
+        <input type="text" class="post-alt-input" data-index="${i}" maxlength="200" placeholder="Describe this ${m.type === 'video' ? 'video' : 'photo'}" value="${esc(m.alt || '')}">
       </div>
     `).join('');
 
     postMediaEditorState.forEach((m, i) => {
       const preview = document.getElementById('pm' + i);
-      const mediaEl = makeMediaEl({ media: m.data, mediaType: m.type, posX: m.posX, posY: m.posY });
+      const mediaEl = makeMediaEl({ media: m.preview || m.data, mediaType: m.type, posX: m.posX, posY: m.posY });
       preview.insertBefore(mediaEl, preview.firstChild);
       attachPostMediaDrag(preview, i);
     });
 
+    wrap.querySelectorAll('.post-alt-input').forEach(input => {
+      input.addEventListener('input', () => { postMediaEditorState[Number(input.dataset.index)].alt = input.value; });
+    });
+
     wrap.querySelectorAll('.post-media-remove').forEach(btn => {
       btn.addEventListener('click', () => {
-        postMediaEditorState.splice(Number(btn.dataset.index), 1);
+        const removed = postMediaEditorState.splice(Number(btn.dataset.index), 1)[0];
+        if (removed && removed.preview) URL.revokeObjectURL(removed.preview);
         renderPostMediaEditor();
       });
     });
@@ -1714,22 +1879,72 @@
       if (imageCount > MAX_IMAGES) { alert(`You can upload up to ${MAX_IMAGES} images per post.`); postMediaInput.value = ''; return; }
       if (videoCount > MAX_VIDEOS) { alert(`You can upload up to ${MAX_VIDEOS} videos per post.`); postMediaInput.value = ''; return; }
 
-      Promise.all(files.map(file => new Promise(resolve => {
-        const reader = new FileReader();
-        reader.onload = e => resolve({
-          data: e.target.result,
-          type: file.type.startsWith('video') ? 'video' : 'image',
-          posX: 50, posY: 50
-        });
-        reader.readAsDataURL(file);
-      }))).then(items => {
-        // Add to what's already there so earlier uploads aren't lost
-        postMediaEditorState = postMediaEditorState.concat(items);
-        postMediaInput.value = '';
-        renderPostMediaEditor();
-      });
+      const items = files.map(file => ({
+        file,
+        preview: URL.createObjectURL(file),
+        type: file.type.startsWith('video') ? 'video' : 'image',
+        posX: 50, posY: 50, alt: ''
+      }));
+      // Add to what's already there so earlier uploads aren't lost
+      postMediaEditorState = postMediaEditorState.concat(items);
+      postMediaInput.value = '';
+      renderPostMediaEditor();
     });
   }
+
+  // ---------- photo viewer (tap a photo in a post to see it whole, swipe/arrow to the next) ----------
+  let lightboxItems = [], lightboxIndex = 0, lightboxTouchX = null;
+
+  function showLightboxItem(){
+    const item = lightboxItems[lightboxIndex];
+    if (!item) return;
+    document.getElementById('lightbox-img').src = item.data;
+    document.getElementById('lightbox-img').alt = item.alt || '';
+    document.getElementById('lightbox-caption').textContent = item.alt || '';
+    const multi = lightboxItems.length > 1;
+    document.querySelectorAll('.lightbox-nav').forEach(b => { b.style.display = multi ? 'block' : 'none'; });
+  }
+  function openLightbox(items, start){
+    lightboxItems = items; lightboxIndex = start;
+    document.getElementById('lightbox').style.display = 'flex';
+    showLightboxItem();
+  }
+  function closeLightbox(){
+    document.getElementById('lightbox').style.display = 'none';
+    document.getElementById('lightbox-img').removeAttribute('src');
+  }
+  function stepLightbox(dir){
+    if (lightboxItems.length < 2) return;
+    lightboxIndex = (lightboxIndex + dir + lightboxItems.length) % lightboxItems.length;
+    showLightboxItem();
+  }
+  document.addEventListener('keydown', e => {
+    if (document.getElementById('lightbox').style.display === 'none') return;
+    if (e.key === 'Escape') closeLightbox();
+    else if (e.key === 'ArrowLeft') stepLightbox(-1);
+    else if (e.key === 'ArrowRight') stepLightbox(1);
+  });
+  (function(){
+    const box = document.getElementById('lightbox');
+    box.addEventListener('click', e => { if (e.target === box) closeLightbox(); });
+    box.addEventListener('touchstart', e => { lightboxTouchX = e.touches[0].clientX; }, { passive: true });
+    box.addEventListener('touchend', e => {
+      if (lightboxTouchX == null) return;
+      const dx = e.changedTouches[0].clientX - lightboxTouchX;
+      lightboxTouchX = null;
+      if (Math.abs(dx) > 50) stepLightbox(dx < 0 ? 1 : -1);
+    });
+    document.getElementById('blog-feed').addEventListener('click', e => {
+      const img = e.target.closest('img[data-media-index]');
+      if (!img) return;
+      const card = img.closest('.post-card');
+      const post = card && cachedPosts.find(p => String(p.id) === String(card.dataset.postId));
+      if (!post) return;
+      const photos = getPostMediaItems(post).map((m, idx) => ({ ...m, idx })).filter(m => m.type !== 'video');
+      const start = photos.findIndex(m => m.idx === Number(img.dataset.mediaIndex));
+      if (start >= 0) openLightbox(photos, start);
+    });
+  })();
 
   // ---------- insert link tool for the post editor ----------
   function insertPostLink(){
@@ -1747,8 +1962,10 @@
 
   async function deletePost(id){
     if (!confirm('Delete this post? This cannot be undone.')) return;
+    const post = cachedPosts.find(p => String(p.id) === String(id));
     const { error } = await sb.from('posts').delete().eq('id', id);
     if (error) { alert('Could not delete — try logging in again.'); return; }
+    if (post) await removeStoredFiles(getPostMediaItems(post));
     loadPosts();
   }
 
